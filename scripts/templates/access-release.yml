@@ -1,0 +1,55 @@
+# Access VSC が作成したリリース（CD）ワークフロー
+#   v1.2.0 のようなタグを push すると：ソースを取り込み → テスト → .accde を作成 → 配布先へ公開
+#   手動実行（Actions → Access Release → Run workflow）も可能。
+#
+#   必要なもの：Access を入れたセルフホストランナー（ラベル access）。
+#   ランナーを動かすアカウントが、access-deploy.json の deployTo（共有フォルダ）に書き込めること。
+#
+name: Access Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'バージョン（空なら日時）'
+        required: false
+
+# 必要最小限の権限（コードを読むだけ）
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: ビルドと配布
+    runs-on: [self-hosted, windows, access]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: ソースをすべて Access に取り込み、コンパイル
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File "{{TOOLS}}/access.ps1" import -All -DbPath "{{DB}}" -NoBackup
+      - name: VBA テスト
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File "{{TOOLS}}/access.ps1" test -DbPath "{{DB}}" -Text -Summary "$env:GITHUB_STEP_SUMMARY"
+      - name: .accde を作成して配布
+        shell: powershell
+        # 入力値はスクリプトに直接埋め込まず、環境変数で受け取る（スクリプト インジェクション対策）
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $v = $env:INPUT_VERSION
+          if (-not $v -and $env:REF_TYPE -eq 'tag') { $v = $env:REF_NAME.TrimStart('v') }
+          if ($v -and $v -notmatch '^[0-9A-Za-z._-]+$') { throw "バージョンに使えない文字があります: $v" }
+          $cmdArgs = @('deploy', '-DbPath', "{{DB}}", '-Yes', '-Text')
+          if ($v) { $cmdArgs += @('-Version', $v) }
+          powershell -NoProfile -ExecutionPolicy Bypass -File "{{TOOLS}}/access.ps1" @cmdArgs
+      - name: 成果物を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: access-release
+          path: {{OUTPUT}}/

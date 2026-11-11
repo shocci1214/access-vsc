@@ -1,0 +1,314 @@
+{
+  "name": "access-vscode",
+  "displayName": "Access VSC",
+  "description": "Microsoft Access の VBA・クエリ・フォーム・レポートを VS Code で編集し、AI エージェント（Claude Code / GitHub Copilot）から操作できるようにする",
+  "version": "0.5.0",
+  "publisher": "local",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/shocci1214/access-vsc.git" },
+  "homepage": "https://shocci1214.github.io/access-vsc/",
+  "bugs": { "url": "https://github.com/shocci1214/access-vsc/issues" },
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "Access",
+    "VBA",
+    "MCP",
+    "accdb"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "main": "./extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Access のデータベースをマクロを有効にして開くため、信頼していないフォルダでは使えません（中の VBA が実行される恐れがあるため）。"
+    },
+    "virtualWorkspaces": false
+  },
+  "activationEvents": [
+    "workspaceContains:**/*.accdb",
+    "workspaceContains:**/*.mdb",
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "accessVsc.menu", "title": "メニュー", "category": "Access" },
+      { "command": "accessVsc.selectDatabase", "title": "データベースを選択", "category": "Access", "icon": "$(database)" },
+      { "command": "accessVsc.export", "title": "Access から取り出す（エクスポート）", "category": "Access", "icon": "$(cloud-download)" },
+      { "command": "accessVsc.import", "title": "Access へ反映する（変更をインポート）", "category": "Access", "icon": "$(cloud-upload)" },
+      { "command": "accessVsc.importAll", "title": "すべて Access へ反映する", "category": "Access" },
+      { "command": "accessVsc.importFile", "title": "このファイルを Access へ反映", "category": "Access", "icon": "$(cloud-upload)" },
+      { "command": "accessVsc.compile", "title": "VBA をコンパイル", "category": "Access", "icon": "$(check-all)" },
+      { "command": "accessVsc.runProcedure", "title": "VBA プロシージャを実行", "category": "Access", "icon": "$(play)" },
+      { "command": "accessVsc.runSql", "title": "SQL を実行（データを見る）", "category": "Access", "icon": "$(play)" },
+      { "command": "accessVsc.previewReport", "title": "プレビュー（帳票の印刷イメージ）", "category": "Access", "icon": "$(open-preview)" },
+      { "command": "accessVsc.reportLayout", "title": "レイアウト詳細", "category": "Access", "icon": "$(symbol-ruler)" },
+      { "command": "accessVsc.pageSetup", "title": "ページ設定（用紙・向き・余白）", "category": "Access", "icon": "$(settings)" },
+      { "command": "accessVsc.status", "title": "同期状態を表示", "category": "Access" },
+      { "command": "accessVsc.openInAccess", "title": "Access で開く", "category": "Access", "icon": "$(link-external)" },
+      { "command": "accessVsc.setupAgent", "title": "AI エージェント連携を設定（.mcp.json / CLAUDE.md など）", "category": "Access", "icon": "$(sparkle)" },
+      { "command": "accessVsc.showOutput", "title": "出力ログを表示", "category": "Access" },
+      { "command": "accessVsc.refresh", "title": "最新の状態に更新", "category": "Access", "icon": "$(refresh)" },
+      { "command": "accessVsc.focusObjects", "title": "オブジェクト一覧を表示", "category": "Access" },
+      { "command": "accessVsc.openExternalFile", "title": "ファイルを開く", "category": "Access" },
+      { "command": "accessVsc.runTests", "title": "テストを実行（VBA ユニットテスト）", "category": "Access", "icon": "$(beaker)" },
+      { "command": "accessVsc.lint", "title": "コードチェック（lint）", "category": "Access", "icon": "$(checklist)" },
+      { "command": "accessVsc.setupCi", "title": "テスト・CI/CD を準備（Assert / GitHub Actions / コミット前チェック）", "category": "Access", "icon": "$(rocket)" },
+      { "command": "accessVsc.snapshot", "title": "帳票の見た目を比較（スナップショット）", "category": "Access", "icon": "$(eye)" },
+      { "command": "accessVsc.snapshotAccept", "title": "この見た目を基準にする（スナップショット更新）", "category": "Access", "icon": "$(pass)" },
+      { "command": "accessVsc.deployInit", "title": "配布の設定（access-deploy.json）", "category": "Access", "icon": "$(gear)" },
+      { "command": "accessVsc.build", "title": "リリースを作成（.accde）", "category": "Access", "icon": "$(package)" },
+      { "command": "accessVsc.deploy", "title": "配布する（共有フォルダへ公開）", "category": "Access", "icon": "$(cloud-upload)" },
+      { "command": "accessVsc.openDeployFolder", "title": "配布先を開く", "category": "Access", "icon": "$(folder-opened)" },
+      { "command": "accessVsc.openManual", "title": "ドキュメントを開く（チュートリアル・学習コース・リファレンス）", "category": "Access", "icon": "$(book)" },
+      { "command": "accessVsc.createSample", "title": "練習用サンプルを作る", "category": "Access", "icon": "$(beaker)" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "accessVsc", "title": "Access", "icon": "media/access.svg" }
+      ]
+    },
+    "views": {
+      "accessVsc": [
+        { "id": "accessVsc.actions", "name": "かんたん操作" },
+        { "id": "accessVsc.objects", "name": "オブジェクト" }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "accessVsc.actions",
+        "contents": "まず、作業する Access データベース（.accdb）を選びます。\n[$(database) データベースを選択](command:accessVsc.selectDatabase)\n初めての方は、練習用サンプルとチュートリアルからどうぞ。\n[$(beaker) 練習用サンプルを作る](command:accessVsc.createSample)\n[$(book) チュートリアルを開く](command:accessVsc.openManual?%5B%22tutorial.html%22%5D)"
+      },
+      {
+        "view": "accessVsc.objects",
+        "contents": "データベースを選ぶと、ここに VBA・フォーム・レポート・クエリの一覧が出ます。",
+        "when": "!accessVsc.hasDb"
+      },
+      {
+        "view": "accessVsc.objects",
+        "contents": "まだ Access から取り出していません。\n[$(cloud-download) Access から取り出す](command:accessVsc.export)",
+        "when": "accessVsc.hasDb && !accessVsc.exported"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "accessVsc.gettingStarted",
+        "title": "Access VSC をはじめる",
+        "description": "Access の VBA・帳票を VS Code と AI で開発する流れ",
+        "steps": [
+          {
+            "id": "select",
+            "title": "1. データベースを選ぶ",
+            "description": "作業する .accdb を選びます。フォルダに 1 つだけなら自動で選ばれます。\n[データベースを選択](command:accessVsc.selectDatabase)",
+            "media": { "markdown": "media/walkthrough/select.md" }
+          },
+          {
+            "id": "export",
+            "title": "2. Access から取り出す",
+            "description": "VBA・クエリ・フォーム・レポートをファイルに書き出します。\n[Access から取り出す](command:accessVsc.export)",
+            "media": { "markdown": "media/walkthrough/export.md" },
+            "completionEvents": ["onCommand:accessVsc.export"]
+          },
+          {
+            "id": "edit",
+            "title": "3. 編集して反映する",
+            "description": "左の「オブジェクト」から開いて編集し、「Access へ反映する」で取り込みます。コンパイルエラーは赤線で表示されます。\n[オブジェクト一覧を開く](command:accessVsc.focusObjects)",
+            "media": { "markdown": "media/walkthrough/edit.md" },
+            "completionEvents": ["onCommand:accessVsc.import"]
+          },
+          {
+            "id": "check",
+            "title": "4. 動かして確かめる",
+            "description": "VBA の関数を実行したり、帳票を画像でプレビューしたりできます。\n[帳票をプレビュー](command:accessVsc.previewReport)",
+            "media": { "markdown": "media/walkthrough/check.md" },
+            "completionEvents": ["onCommand:accessVsc.runProcedure", "onCommand:accessVsc.previewReport"]
+          },
+          {
+            "id": "test",
+            "title": "5. テストを書いて自動化する",
+            "description": "テスト用の Assert とテスト例、GitHub Actions、コミット前の自動チェックを追加します。\n[テスト・CI/CD を準備](command:accessVsc.setupCi)\n[テストを実行](command:accessVsc.runTests)",
+            "media": { "markdown": "media/walkthrough/test.md" },
+            "completionEvents": ["onCommand:accessVsc.runTests"]
+          },
+          {
+            "id": "release",
+            "title": "6. 配布する",
+            "description": ".accde を作って共有フォルダへ公開します。利用者は起動するだけで最新版になります。\n[配布の設定](command:accessVsc.deployInit)\n[リリースを作成](command:accessVsc.build)",
+            "media": { "markdown": "media/walkthrough/release.md" },
+            "completionEvents": ["onCommand:accessVsc.build"]
+          },
+          {
+            "id": "ai",
+            "title": "7. AI に頼む",
+            "description": "Claude Code / GitHub Copilot が Access を操作できるように設定します。\n[AI エージェント連携を設定](command:accessVsc.setupAgent)",
+            "media": { "markdown": "media/walkthrough/ai.md" },
+            "completionEvents": ["onCommand:accessVsc.setupAgent"]
+          }
+        ]
+      }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "accessVsc.import", "when": "view == accessVsc.objects", "group": "navigation@1" },
+        { "command": "accessVsc.export", "when": "view == accessVsc.objects", "group": "navigation@2" },
+        { "command": "accessVsc.refresh", "when": "view == accessVsc.objects || view == accessVsc.actions", "group": "navigation@9" },
+        { "command": "accessVsc.selectDatabase", "when": "view == accessVsc.actions", "group": "navigation@1" }
+      ],
+      "view/item/context": [
+        { "command": "accessVsc.previewReport", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.(reports|forms)(\\.|$)/", "group": "inline@1" },
+        { "command": "accessVsc.runSql", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.(queries|tables)(\\.|$)/", "group": "inline@1" },
+        { "command": "accessVsc.runProcedure", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.modules\\.std/", "group": "inline@1" },
+        { "command": "accessVsc.importFile", "when": "view == accessVsc.objects && viewItem =~ /\\.pending$/", "group": "inline@2" },
+
+        { "command": "accessVsc.previewReport", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.(reports|forms)(\\.|$)/", "group": "1_report@1" },
+        { "command": "accessVsc.reportLayout", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.(reports|forms)(\\.|$)/", "group": "1_report@2" },
+        { "command": "accessVsc.pageSetup", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.reports(\\.|$)/", "group": "1_report@3" },
+        { "command": "accessVsc.snapshot", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.reports(\\.|$)/", "group": "1_report@4" },
+        { "command": "accessVsc.snapshotAccept", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.reports(\\.|$)/", "group": "1_report@5" },
+        { "command": "accessVsc.runProcedure", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.modules\\.std/", "group": "1_report@1" },
+        { "command": "accessVsc.runSql", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.(queries|tables)(\\.|$)/", "group": "1_report@1" },
+        { "command": "accessVsc.importFile", "when": "view == accessVsc.objects && viewItem =~ /^accessObj\\.(modules|forms|reports|macros|queries)/", "group": "2_sync@1" }
+      ],
+      "explorer/context": [
+        {
+          "command": "accessVsc.selectDatabase",
+          "when": "resourceExtname == .accdb || resourceExtname == .mdb",
+          "group": "accessVsc@1"
+        },
+        {
+          "command": "accessVsc.importFile",
+          "when": "resourceExtname =~ /^\\.(bas|cls|txt|sql)$/ && resourcePath =~ /\\.src[\\\\/](modules|forms|reports|macros|queries)[\\\\/]/",
+          "group": "accessVsc@2"
+        },
+        {
+          "command": "accessVsc.previewReport",
+          "when": "resourcePath =~ /\\.src[\\\\/](reports|forms)[\\\\/][^\\\\/]+\\.txt$/",
+          "group": "accessVsc@3"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "accessVsc.importFile",
+          "when": "resourcePath =~ /\\.src[\\\\/](modules|forms|reports|macros|queries)[\\\\/]/",
+          "group": "accessVsc@1"
+        },
+        {
+          "command": "accessVsc.runProcedure",
+          "when": "editorLangId == vba",
+          "group": "accessVsc@2"
+        },
+        {
+          "command": "accessVsc.runSql",
+          "when": "editorHasSelection || resourceExtname == .sql",
+          "group": "accessVsc@3"
+        },
+        {
+          "command": "accessVsc.previewReport",
+          "when": "resourcePath =~ /\\.src[\\\\/](reports|forms)[\\\\/][^\\\\/]+\\.txt$/",
+          "group": "accessVsc@4"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "accessVsc.previewReport",
+          "when": "resourcePath =~ /\\.src[\\\\/](reports|forms)[\\\\/][^\\\\/]+\\.txt$/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "accessVsc.import",
+          "when": "resourcePath =~ /\\.src[\\\\/](modules|forms|reports|macros|queries)[\\\\/]/",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        { "command": "accessVsc.openExternalFile", "when": "false" },
+        { "command": "accessVsc.focusObjects", "when": "false" }
+      ]
+    },
+    "configuration": {
+      "title": "Access VSC",
+      "properties": {
+        "accessVsc.database": {
+          "type": "string",
+          "default": "",
+          "description": "対象の Access データベース（.accdb / .mdb）。ワークスペースからの相対パスも可。空ならワークスペース内から自動検出します。"
+        },
+        "accessVsc.sourceFolder": {
+          "type": "string",
+          "default": "",
+          "description": "ソースフォルダ。空なら「<データベース>.src」（例: app.accdb.src）。相対パスはデータベースのフォルダ基準。"
+        },
+        "accessVsc.importOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "ソースフォルダ内のファイルを保存したら、自動で Access へ反映（インポート＋コンパイル）する。"
+        },
+        "accessVsc.lintOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "ソースフォルダ内のファイルを保存したら、コードチェック（lint。Access 不要）を自動で実行する。"
+        },
+        "accessVsc.timeoutSec": {
+          "type": "number",
+          "default": 0,
+          "description": "Access 操作のタイムアウト（秒）。0 ならコマンドごとの既定値（実行 60 秒、インポート/エクスポート 600 秒）。"
+        },
+        "accessVsc.sqlRowLimit": {
+          "type": "number",
+          "default": 200,
+          "description": "「SQL を実行」で表示する最大行数。"
+        },
+        "accessVsc.powershellPath": {
+          "type": "string",
+          "default": "powershell.exe",
+          "description": "PowerShell の実行ファイル。Access の COM を使うため Windows PowerShell 5.1 を推奨。"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "vba",
+        "aliases": ["VBA", "vba"],
+        "extensions": [".bas", ".cls"],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "access-object",
+        "aliases": ["Access Object (SaveAsText)"],
+        "filenamePatterns": ["**/*.src/forms/*.txt", "**/*.src/reports/*.txt", "**/*.src/macros/*.txt"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "snippets": [
+      { "language": "vba", "path": "./snippets/vba.json" },
+      { "language": "access-object", "path": "./snippets/vba.json" }
+    ],
+    "grammars": [
+      {
+        "language": "vba",
+        "scopeName": "source.vba",
+        "path": "./syntaxes/vba.tmLanguage.json"
+      },
+      {
+        "language": "access-object",
+        "scopeName": "source.access-object",
+        "path": "./syntaxes/access-object.tmLanguage.json",
+        "embeddedLanguages": { "meta.embedded.block.vba": "vba" }
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "accessVsc.mcp",
+        "label": "Access VSC"
+      }
+    ]
+  }
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access VSC ドキュメント</title>
+<meta name="description" content="Access VSC のドキュメント。チュートリアル・学習コース・リファレンスの入口。">
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+<div class="topnav"><div class="in">
+  <a class="brand" href="index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5" rx="7" ry="2.6"/><path d="M3 5v13c0 1.4 3.1 2.6 7 2.6"/><path d="M17 5v4"/><path d="M3 11.5c0 1.4 3.1 2.6 7 2.6"/><path d="M13.5 21l3.5-9 3.5 9"/><path d="M14.8 18h4.4"/></svg><span>Access VSC</span></a>
+  <a class="tab on" href="index.html">ホーム</a>
+  <a class="tab" href="tutorial.html">チュートリアル</a>
+  <a class="tab" href="course.html">学習コース</a>
+  <a class="tab" href="reference.html">リファレンス</a>
+  <span class="sp"></span><button type="button" data-theme-toggle>ライト / ダーク</button>
+</div></div>
+
+<div class="layout single">
+<main>
+<header class="hero">
+  <div class="kind">ドキュメント</div>
+  <h1>Access VSC ドキュメント</h1>
+  <p>Microsoft Access の VBA・クエリ・フォーム・レポートを VS Code で編集し、AI と一緒に開発するための拡張機能 <b>Access VSC</b> の説明書です。目的に合わせて 3 種類あります。</p>
+  <div class="meta"><span class="pill">拡張機能 v0.5.0 対応</span><span class="pill">Windows + Microsoft Access</span></div>
+</header>
+
+<section>
+  <div class="cards">
+    <a class="card" href="tutorial.html">
+      <div class="k">TUTORIAL</div>
+      <h3>チュートリアル</h3>
+      <p>練習用のサンプルを使い、手を動かして小さな改良を 1 本仕上げます。関数を作る → 動かす → 帳票を直す → テスト → AI に頼む、まで一通り体験します。</p>
+      <div class="when">最初に 1 回 ／ 約 60〜90 分 ／ 上から順に</div>
+    </a>
+    <a class="card" href="course.html">
+      <div class="k">COURSE</div>
+      <h3>学習コース</h3>
+      <p>初級 → 中級 → 上級の 3 段階。仕組みや考え方を理解し、自分の仕事のデータベースで使いこなせるようになるための教材です。到達目標・演習・理解度チェック付き。</p>
+      <div class="when">チュートリアルの後 ／ 自分のレベルから少しずつ</div>
+    </a>
+    <a class="card" href="reference.html">
+      <div class="k">REFERENCE</div>
+      <h3>リファレンス</h3>
+      <p>ボタン、コマンド、設定、ファイルの書き方、エラーメッセージ、コマンドライン、AI 用ツールなどの一覧。「あれ、どうだっけ？」のときに引く辞書です。</p>
+      <div class="when">必要なときに ／ 検索して（<kbd>Ctrl</kbd>+<kbd>F</kbd>）</div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <h2>どこから読む？</h2>
+  <div class="table-wrap"><table>
+    <tr><th>あなたは</th><th>おすすめ</th></tr>
+    <tr><td>VS Code も Access VSC も初めて</td><td><a href="tutorial.html">チュートリアル</a>を最初から → <a href="course.html#beginner">学習コース 初級</a></td></tr>
+    <tr><td>チュートリアルは終わった。自分の仕事の DB で使いたい</td><td><a href="course.html#beginner">学習コース 初級</a> の「自分のデータベースで始める」から</td></tr>
+    <tr><td>帳票の修正や AI の活用をもっと上手にやりたい</td><td><a href="course.html#intermediate">学習コース 中級</a></td></tr>
+    <tr><td>チームで使う・品質を仕組みで守る・配布を自動化したい</td><td><a href="course.html#advanced">学習コース 上級</a></td></tr>
+    <tr><td>ボタンの意味やエラーの対処を調べたい</td><td><a href="reference.html">リファレンス</a>（<a href="reference.html#errors">エラーと対処</a>）</td></tr>
+  </table></div>
+  <div class="path"><span>チュートリアル</span><i>→</i><span>初級</span><i>→</i><span>中級</span><i>→</i><span>上級</span><i>…困ったら</i><span>リファレンス</span></div>
+</section>
+
+<section>
+  <h2>まだインストールしていない場合</h2>
+  <p>ターミナル（VS Code の［ターミナル］→［新しいターミナル］）で次を実行し、<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> →「Reload Window」で再読み込みします。左端に Access のアイコンが出れば完了です。詳しくは<a href="tutorial.html#t0">チュートリアルの「準備」</a>。</p>
+<pre><code>cd C:\work\access-vscode
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build-vsix.ps1 -Install</code></pre>
+</section>
+</main>
+</div>
+<script src="assets/docs.js"></script>
+</body>
+</html>

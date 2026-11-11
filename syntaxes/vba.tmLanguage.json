@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "VBA",
+  "scopeName": "source.vba",
+  "patterns": [{ "include": "#code" }],
+  "repository": {
+    "code": {
+      "patterns": [
+        { "name": "comment.line.apostrophe.vba", "match": "'.*$" },
+        { "name": "comment.line.rem.vba", "match": "(?i)(?<=^|:)\\s*rem\\b.*$" },
+        { "name": "comment.block.attribute.vba", "match": "(?i)^\\s*(Attribute|VERSION)\\b.*$" },
+        {
+          "name": "string.quoted.double.vba",
+          "begin": "\"",
+          "end": "\"(?!\")",
+          "patterns": [{ "name": "constant.character.escape.vba", "match": "\"\"" }]
+        },
+        { "name": "meta.preprocessor.vba", "match": "(?i)^\\s*#(If|ElseIf|Else|End\\s+If|Const)\\b.*$" },
+        { "name": "constant.other.date.vba", "match": "#[0-9/:\\-\\sAPMapm]+#" },
+        { "name": "constant.numeric.vba", "match": "(?i)(&H[0-9A-F]+&?|&O[0-7]+&?|\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?[#!@&%^]?)" },
+        {
+          "match": "(?i)\\b(Function|Sub|Property\\s+(?:Get|Let|Set))\\s+([A-Za-z_\\p{L}][\\w\\p{L}]*)",
+          "captures": {
+            "1": { "name": "storage.type.function.vba" },
+            "2": { "name": "entity.name.function.vba" }
+          }
+        },
+        { "name": "keyword.control.vba", "match": "(?i)\\b(If|Then|Else|ElseIf|Select|Case|For|Each|In|To|Step|Next|Do|Loop|While|Wend|Until|Exit|GoTo|GoSub|Return|On\\s+Error|Resume|With|End|Call|RaiseEvent|Stop)\\b" },
+        { "name": "storage.modifier.vba", "match": "(?i)\\b(Public|Private|Friend|Static|Global|Dim|ReDim|Preserve|Const|Optional|ByVal|ByRef|ParamArray|WithEvents|Implements|Declare|PtrSafe|Lib|Alias|Enum|Type|Event|Option|Explicit|Compare|Database|Binary|Base)\\b" },
+        { "name": "storage.type.vba", "match": "(?i)\\b(As|New|Set|Let|Get|Boolean|Byte|Integer|Long|LongLong|LongPtr|Single|Double|Currency|Decimal|Date|String|Object|Variant|Collection|Recordset|Database|Form|Report|Control)\\b" },
+        { "name": "keyword.operator.word.vba", "match": "(?i)\\b(And|Or|Not|Xor|Eqv|Imp|Mod|Is|Like|TypeOf|AddressOf)\\b" },
+        { "name": "keyword.operator.vba", "match": "[-+*/\\\\^&=<>]" },
+        { "name": "constant.language.vba", "match": "(?i)\\b(True|False|Nothing|Null|Empty|Me|vbNullString|vbCrLf|vbCr|vbLf|vbTab)\\b" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access VSC リファレンス</title>
+<meta name="description" content="Access VSC のボタン・コマンド・設定・ファイル形式・エラー・CLI・AI 用ツールの一覧。">
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+<div class="topnav"><div class="in">
+  <a class="brand" href="index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5" rx="7" ry="2.6"/><path d="M3 5v13c0 1.4 3.1 2.6 7 2.6"/><path d="M17 5v4"/><path d="M3 11.5c0 1.4 3.1 2.6 7 2.6"/><path d="M13.5 21l3.5-9 3.5 9"/><path d="M14.8 18h4.4"/></svg><span>Access VSC</span></a>
+  <a class="tab" href="index.html">ホーム</a>
+  <a class="tab" href="tutorial.html">チュートリアル</a>
+  <a class="tab" href="course.html">学習コース</a>
+  <a class="tab on" href="reference.html">リファレンス</a>
+  <span class="sp"></span><button type="button" data-theme-toggle>ライト / ダーク</button>
+</div></div>
+
+<div class="layout">
+<nav class="toc" aria-label="目次">
+  <div class="h">画面と操作</div>
+  <ol>
+    <li><a href="#sidebar">サイドバー</a></li>
+    <li><a href="#editor">エディタ・ステータスバー</a></li>
+    <li><a href="#commands">コマンド一覧</a></li>
+    <li><a href="#settings">設定</a></li>
+    <li><a href="#keys">キーボード</a></li>
+  </ol>
+  <div class="h">ファイル</div>
+  <ol>
+    <li><a href="#folders">フォルダの構成</a></li>
+    <li><a href="#formats">ファイルの書き方</a></li>
+    <li><a href="#twip">帳票の単位と用紙</a></li>
+  </ol>
+  <div class="h">品質・配布</div>
+  <ol>
+    <li><a href="#assert">Assert</a></li>
+    <li><a href="#tests">テストの決まり</a></li>
+    <li><a href="#lint">コードチェックの項目</a></li>
+    <li><a href="#snapshot">帳票スナップショット</a></li>
+    <li><a href="#cicd">CI/CD のファイル</a></li>
+    <li><a href="#deploy">配布</a></li>
+  </ol>
+  <div class="h">困ったとき・上級</div>
+  <ol>
+    <li><a href="#errors">エラーと対処</a></li>
+    <li><a href="#limits">動作環境と制限</a></li>
+    <li><a href="#security">セキュリティ</a></li>
+    <li><a href="#ai">AI 連携・MCP ツール</a></li>
+    <li><a href="#cli">コマンドライン（CLI）</a></li>
+    <li><a href="#glossary">用語集</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kind">REFERENCE</div>
+  <h1>リファレンス</h1>
+  <p>ボタン・コマンド・設定・ファイルの書き方・エラーなどの一覧です。<kbd>Ctrl</kbd>+<kbd>F</kbd> で探してください。使い方を順に覚えたいときは<a href="tutorial.html">チュートリアル</a>、考え方を学ぶときは<a href="course.html">学習コース</a>へ。</p>
+  <div class="meta"><span class="pill">拡張機能 v0.5.0</span></div>
+</header>
+
+<!-- =========================================================== -->
+<section id="sidebar">
+  <h2>サイドバー</h2>
+  <p>左端の Access アイコンで開きます。「かんたん操作」と「オブジェクト」の 2 つがあります。</p>
+  <figure class="shot"><a href="images/t20-sidebar.png" target="_blank"><img src="images/t20-sidebar.png" alt="サイドバー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>サイドバーの全体</figcaption></figure>
+  <h3>かんたん操作</h3>
+  <div class="table-wrap"><table>
+    <tr><th>グループ</th><th>ボタン</th><th>動き</th></tr>
+    <tr><td>（先頭）</td><td>データベース名</td><td>今のデータベースと、未反映の件数（「未取り出し」「同期済み」「未反映 N 件」）。押すと同期状態の一覧</td></tr>
+    <tr><td rowspan="4">基本の流れ</td><td>① Access から取り出す</td><td>Access → ファイル（エクスポート）。未反映の変更がある場合は確認</td></tr>
+    <tr><td>② ファイルを編集する</td><td>「オブジェクト」を表示</td></tr>
+    <tr><td>③ Access へ反映する</td><td>変更・追加したファイル → Access。続けてコンパイル。削除したファイルがあれば Access からも削除するか確認</td></tr>
+    <tr><td>④ 動かして確かめる</td><td>VBA の Public Function / Sub を実行（名前と引数を入力）</td></tr>
+    <tr><td rowspan="4">確認する</td><td>帳票をプレビュー</td><td>レポートを選んで印刷イメージとレイアウトの問題を表示</td></tr>
+    <tr><td>データを見る</td><td>SELECT 文または保存済みクエリ名を入力して結果を表示</td></tr>
+    <tr><td>コンパイルする</td><td>VBA の文法チェックだけ</td></tr>
+    <tr><td>Access で開く</td><td>Access の画面で開く（開いている間は反映できない）</td></tr>
+    <tr><td rowspan="4">テスト・品質</td><td>テストを実行</td><td>Test_ で始まるテストをすべて実行（DB のコピー上で）</td></tr>
+    <tr><td>コードチェック</td><td>Access を使わずにソース全体をチェック</td></tr>
+    <tr><td>帳票の見た目を比較</td><td>全レポートを基準画像と比較</td></tr>
+    <tr><td>テスト・CI/CD を準備</td><td>Assert・テスト例・git・GitHub Actions・コミット前チェックを追加</td></tr>
+    <tr><td rowspan="4">配布（リリース）</td><td>配布の設定</td><td><code>access-deploy.json</code> とリリース用ワークフローを作る</td></tr>
+    <tr><td>リリースを作成</td><td><code>.accde</code> を作る（配布はしない）</td></tr>
+    <tr><td>配布する</td><td>共有フォルダへ公開（確認あり）</td></tr>
+    <tr><td>配布先を開く</td><td>共有フォルダを開く</td></tr>
+    <tr><td>AI と使う</td><td>AI エージェント連携を設定</td><td>選んだ AI 用の設定ファイル・手順書を作る</td></tr>
+    <tr><td rowspan="7">その他</td><td>ドキュメント</td><td>このドキュメントを開く</td></tr>
+    <tr><td>練習用サンプルを作る</td><td>チュートリアル用の小さな受注管理 DB を作る</td></tr>
+    <tr><td>使い方ガイド</td><td>VS Code 内の簡単なガイド（ウォークスルー）</td></tr>
+    <tr><td>すべてを反映</td><td>変更の有無にかかわらず全ファイルを反映</td></tr>
+    <tr><td>データベースを切り替える</td><td>別の .accdb を選ぶ</td></tr>
+    <tr><td>ログを表示</td><td>実行結果の詳細（出力パネル）</td></tr>
+    <tr><td>設定</td><td>この拡張機能の設定画面</td></tr>
+  </table></div>
+  <h3>オブジェクト</h3>
+  <div class="table-wrap"><table>
+    <tr><th>表示</th><th>意味</th></tr>
+    <tr><td>● 変更あり（未反映）</td><td>ファイルを変えたが、Access にはまだ入っていない</td></tr>
+    <tr><td>＋ 新規（未反映）</td><td>新しいファイル。Access にはまだない</td></tr>
+    <tr><td>✕ ファイル削除（Access には残っています）</td><td>ファイルを消した。反映するときに Access からも消すか選べる</td></tr>
+    <tr><td>⚠ 編集しても反映されません</td><td>テーブル定義（見るだけのファイル）を編集した</td></tr>
+    <tr><td>クラス</td><td>クラスモジュール（.cls）</td></tr>
+  </table></div>
+  <div class="table-wrap"><table>
+    <tr><th>種類</th><th>行の右端のボタン</th><th>右クリック</th></tr>
+    <tr><td>標準モジュール</td><td>▶ 実行</td><td>VBA プロシージャを実行（中の関数を選ぶ）／このファイルを Access へ反映</td></tr>
+    <tr><td>レポート</td><td>プレビュー</td><td>プレビュー／レイアウト詳細／ページ設定／帳票の見た目を比較／この見た目を基準にする／反映</td></tr>
+    <tr><td>フォーム</td><td>プレビュー</td><td>プレビュー／レイアウト詳細／反映</td></tr>
+    <tr><td>クエリ</td><td>▶ 実行</td><td>SQL を実行／反映</td></tr>
+    <tr><td>テーブル</td><td>▶（先頭 100 行を表示）</td><td>SQL を実行</td></tr>
+    <tr><td>未反映のもの</td><td>反映（雲のアイコン）</td><td>—</td></tr>
+  </table></div>
+  <p>「オブジェクト」の上のボタン：反映する／取り出す／最新の状態に更新。</p>
+</section>
+
+<section id="editor">
+  <h2>エディタ・ステータスバー</h2>
+  <h3>ファイルの上に出るボタン（CodeLens）</h3>
+  <div class="table-wrap"><table>
+    <tr><th>ファイル</th><th>ボタン</th></tr>
+    <tr><td>標準モジュール（modules/*.bas）</td><td>各 Public Function / Sub の上に「▶ Access で実行」。引数があれば入力欄が出る</td></tr>
+    <tr><td>クエリ（queries/*.sql）</td><td>先頭に「▶ 保存済みクエリを実行」「▶ この SQL を実行」</td></tr>
+    <tr><td>レポート・フォーム（reports/*.txt, forms/*.txt）</td><td>先頭に「プレビュー」「レイアウト詳細」「ページ設定」（レポートのみ）</td></tr>
+  </table></div>
+  <h3>VBA の編集支援</h3>
+  <p>標準モジュール・クラスモジュール・フォーム／レポートのコード（<code>CodeBehindForm</code> 以降）で使えます。日本語の名前にも対応しています。</p>
+  <div class="table-wrap"><table>
+    <tr><th>機能</th><th>操作</th><th>内容</th></tr>
+    <tr><td>アウトライン</td><td>エクスプローラーの「アウトライン」／ <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></td><td>ファイル内の Sub・Function・Property・定数・変数・Type・Enum の一覧。画面上部のパンくずにも表示</td></tr>
+    <tr><td>プロジェクト全体の検索</td><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>全モジュールの手続き・定数を名前で探して移動</td></tr>
+    <tr><td>定義へ移動</td><td><kbd>F12</kbd> または <kbd>Ctrl</kbd>+クリック</td><td>手続き（別モジュール・<code>モジュール名.手続き名</code> も）、モジュール名、手続き内のローカル変数・引数の宣言へ</td></tr>
+    <tr><td>参照の検索</td><td><kbd>Shift</kbd>+<kbd>F12</kbd></td><td>その名前が使われている場所の一覧（コメントと文字列の中は除く。フォーム・レポートのコントロールソースなどの式も含む）</td></tr>
+    <tr><td>説明の表示</td><td>マウスを乗せる</td><td>手続きの宣言と、直前のコメント（説明）を表示。<code>Nz</code>・<code>DLookup</code>・<code>Format</code> などよく使う関数の説明も</td></tr>
+    <tr><td>入力補完</td><td>入力中に自動／ <kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>プロジェクトの手続き・定数・モジュール名、手続き内の変数と引数、よく使う関数、キーワード。<code>モジュール名.</code> の後はそのモジュールの Public な手続き</td></tr>
+    <tr><td>引数のヒント</td><td><code>(</code> や <code>,</code> を入力したとき</td><td>呼び出している手続きの引数の一覧と、今入力している引数</td></tr>
+    <tr><td>折りたたみ</td><td>行番号の横の ˅</td><td>手続き・Type・Enum ごと。フォーム／レポートのテキストは <code>Begin</code>〜<code>End</code> ごと</td></tr>
+    <tr><td>スニペット</td><td>下の表の文字を入力して <kbd>Tab</kbd></td><td>よく使う書き方のひな形</td></tr>
+  </table></div>
+  <div class="table-wrap"><table>
+    <tr><th>入力</th><th>できるもの</th><th>入力</th><th>できるもの</th></tr>
+    <tr><td><code>func</code></td><td>Public Function（説明コメント付き）</td><td><code>errh</code></td><td>エラー処理付きの Sub</td></tr>
+    <tr><td><code>sub</code> / <code>psub</code></td><td>Public Sub / Private Sub</td><td><code>rs</code></td><td>DAO レコードセットのループ</td></tr>
+    <tr><td><code>prop</code></td><td>Property Get / Let</td><td><code>exec</code></td><td>CurrentDb.Execute（dbFailOnError）</td></tr>
+    <tr><td><code>if</code> / <code>ife</code></td><td>If / If～Else</td><td><code>dlookup</code></td><td>Nz(DLookup(...), 既定値)</td></tr>
+    <tr><td><code>for</code> / <code>foreach</code></td><td>For / For Each</td><td><code>test</code></td><td>テスト（Public Sub Test_○○）</td></tr>
+    <tr><td><code>dowhile</code> / <code>select</code> / <code>with</code></td><td>Do While / Select Case / With</td><td><code>testsetup</code> / <code>module</code></td><td>TestSetup・TestTeardown / モジュールの先頭</td></tr>
+  </table></div>
+  <div class="callout note"><b>しくみ</b>ソースのテキストを読んで判断する簡易版です（コンパイラーではありません）。同じ名前の手続きが複数あると候補が複数出ます。型の情報（オブジェクトのメンバーなど）は扱いません。</div>
+
+  <h3>波線とパネル</h3>
+  <div class="table-wrap"><table>
+    <tr><th>表示</th><th>出どころ</th></tr>
+    <tr><td>赤い波線（反映・実行の後）</td><td>コンパイル エラー／実行時エラー（「問題」パネルの出どころ：Access）</td></tr>
+    <tr><td>赤／黄の波線（保存の後）</td><td>コードチェック（出どころ：Access lint）</td></tr>
+    <tr><td>「テスト」ビュー（フラスコ）</td><td>テストの ✔ / ✘。失敗した行にも表示</td></tr>
+    <tr><td>「出力」パネル → Access VSC</td><td>すべての操作の詳しい結果（JSON）</td></tr>
+  </table></div>
+  <h3>そのほか</h3>
+  <ul>
+    <li><b>ステータスバー</b>（画面の一番下）：データベース名と未反映の数（● N）。押すとメニュー
+      <figure class="shot"><a href="images/t19-menu.png" target="_blank"><img src="images/t19-menu.png" alt="メニュー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>ステータスバーを押すと出るメニュー</figcaption></figure></li>
+    <li><b>エディタ右上</b>：ソースフォルダ内のファイルを開いているとき「反映する」、レポートでは「プレビュー」</li>
+    <li><b>エクスプローラーの右クリック</b>：.accdb →「データベースを選択」、ソース内のファイル →「このファイルを Access へ反映」、レポート →「プレビュー」</li>
+    <li><b>色分け</b>：.bas / .cls は VBA、forms / reports / macros の .txt は Access のオブジェクト（CodeBehindForm 以降は VBA）として色分け</li>
+  </ul>
+</section>
+
+<section id="commands">
+  <h2>コマンド一覧</h2>
+  <p><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> で「Access:」と入力すると表示されます。</p>
+  <div class="table-wrap"><table>
+    <tr><th>コマンド</th><th>内容</th></tr>
+    <tr><td>Access: メニュー</td><td>よく使う操作の一覧（ステータスバーを押したときと同じ）</td></tr>
+    <tr><td>Access: データベースを選択</td><td>使う .accdb / .mdb を選ぶ</td></tr>
+    <tr><td>Access: Access から取り出す（エクスポート）</td><td>Access → ファイル</td></tr>
+    <tr><td>Access: Access へ反映する（変更をインポート）</td><td>変更したファイル → Access ＋ コンパイル</td></tr>
+    <tr><td>Access: すべて Access へ反映する</td><td>全ファイル → Access</td></tr>
+    <tr><td>Access: このファイルを Access へ反映</td><td>開いているファイル（選んだファイル）だけ反映</td></tr>
+    <tr><td>Access: VBA をコンパイル</td><td>コンパイルだけ</td></tr>
+    <tr><td>Access: VBA プロシージャを実行</td><td>名前と引数を入力して実行</td></tr>
+    <tr><td>Access: SQL を実行（データを見る）</td><td>SELECT の結果を表で表示</td></tr>
+    <tr><td>Access: プレビュー（帳票の印刷イメージ）</td><td>レポート／フォームを画像で表示</td></tr>
+    <tr><td>Access: レイアウト詳細</td><td>全項目の位置・大きさ（cm）、用紙設定、問題点</td></tr>
+    <tr><td>Access: ページ設定（用紙・向き・余白）</td><td>用紙サイズ・向き・余白（mm）を変更</td></tr>
+    <tr><td>Access: 同期状態を表示</td><td>未反映・追加・削除のファイル一覧</td></tr>
+    <tr><td>Access: Access で開く</td><td>Access の画面で開く</td></tr>
+    <tr><td>Access: AI エージェント連携を設定（.mcp.json / CLAUDE.md など）</td><td>AI 用の設定を作る</td></tr>
+    <tr><td>Access: 出力ログを表示</td><td>出力パネル</td></tr>
+    <tr><td>Access: 最新の状態に更新</td><td>サイドバーなどを更新</td></tr>
+    <tr><td>Access: テストを実行（VBA ユニットテスト）</td><td>テストをすべて実行</td></tr>
+    <tr><td>Access: コードチェック（lint）</td><td>ソース全体をチェック</td></tr>
+    <tr><td>Access: テスト・CI/CD を準備（Assert / GitHub Actions / コミット前チェック）</td><td>テストと CI の準備</td></tr>
+    <tr><td>Access: 帳票の見た目を比較（スナップショット）</td><td>基準画像と比較</td></tr>
+    <tr><td>Access: この見た目を基準にする（スナップショット更新）</td><td>今の見た目を基準画像にする</td></tr>
+    <tr><td>Access: 配布の設定（access-deploy.json）</td><td>配布先などを設定</td></tr>
+    <tr><td>Access: リリースを作成（.accde）</td><td>.accde を作る</td></tr>
+    <tr><td>Access: 配布する（共有フォルダへ公開）</td><td>公開する</td></tr>
+    <tr><td>Access: 配布先を開く</td><td>共有フォルダを開く</td></tr>
+    <tr><td>Access: ドキュメントを開く（チュートリアル・学習コース・リファレンス）</td><td>このドキュメント</td></tr>
+    <tr><td>Access: 練習用サンプルを作る</td><td>チュートリアル用のサンプル DB</td></tr>
+  </table></div>
+</section>
+
+<section id="settings">
+  <h2>設定</h2>
+  <p>サイドバー「その他」→「設定」、または［ファイル］→［ユーザー設定］→［設定］で「accessVsc」を検索。</p>
+  <div class="table-wrap"><table>
+    <tr><th>設定</th><th>初期値</th><th>内容</th></tr>
+    <tr><td><code>accessVsc.database</code></td><td>（空）</td><td>使うデータベース。空ならフォルダ内から自動で探す（1 つだけなら自動選択）</td></tr>
+    <tr><td><code>accessVsc.sourceFolder</code></td><td>（空）</td><td>ソースフォルダ。空なら「データベース名.src」（例 <code>shop.accdb.src</code>）</td></tr>
+    <tr><td><code>accessVsc.importOnSave</code></td><td>オフ</td><td>保存したら自動で反映・コンパイル</td></tr>
+    <tr><td><code>accessVsc.lintOnSave</code></td><td>オン</td><td>保存したら自動でコードチェック</td></tr>
+    <tr><td><code>accessVsc.timeoutSec</code></td><td>0</td><td>Access の操作を打ち切る秒数。0 なら操作ごとの既定（実行 60 秒、取り出し・反映 600 秒、テスト 900 秒など）</td></tr>
+    <tr><td><code>accessVsc.sqlRowLimit</code></td><td>200</td><td>「データを見る」の最大行数</td></tr>
+    <tr><td><code>accessVsc.powershellPath</code></td><td>powershell.exe</td><td>通常は変更不要（Windows PowerShell 5.1 を推奨）</td></tr>
+  </table></div>
+</section>
+
+<section id="keys">
+  <h2>キーボード</h2>
+  <div class="table-wrap"><table>
+    <tr><th>キー</th><th>動き</th></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td><td>コマンド パレット（「Access:」で絞り込み）</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>ファイルを名前で開く</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>保存（コードチェックが動く）</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd></td><td>ファイル内の検索 / 置換</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd></td><td>全ファイルの検索 / 置換</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>行番号へ移動</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>同じ単語を次々に選ぶ（まとめて編集）</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd></td><td>問題パネル（エラー・警告の一覧）</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>\</kbd></td><td>エディタを左右に分割</td></tr>
+    <tr><td><kbd>F12</kbd> / <kbd>Shift</kbd>+<kbd>F12</kbd></td><td>定義へ移動 / 使われている場所の一覧</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> / <kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>ファイル内の手続きへ移動 / プロジェクト全体の手続きへ移動</td></tr>
+    <tr><td><kbd>Alt</kbd>+<kbd>←</kbd></td><td>移動する前の場所へ戻る</td></tr>
+  </table></div>
+</section>
+
+<!-- =========================================================== -->
+<section id="folders">
+  <h2>フォルダの構成</h2>
+<pre><code>C:\work\shop\
+  shop.accdb                   データベース本体
+  shop.accdb.src\              ソースフォルダ（git で管理する）
+    modules\   *.bas *.cls     標準モジュール / クラスモジュール
+    forms\     *.txt           フォーム
+    reports\   *.txt           レポート
+    macros\    *.txt           マクロ
+    queries\   *.sql           クエリ
+    tables\    *.json          テーブル定義（見るだけ）
+    relationships.json         リレーションシップ（見るだけ）
+    references.json            VBA の参照設定（見るだけ。参照不可はコードチェックで警告）
+    snapshots\ *.png           帳票の基準画像
+    .accessvsc.json            同期の記録（編集しない）
+  .accessvsc\                  作業用（git では管理しない）
+    backups\                   反映・ページ設定前の自動バックアップ（最新 10 個）
+    preview\                   プレビューの PDF・画像
+    test\  test-results\       テスト用コピー・結果（junit.xml）
+    snapshots\current\ diff\   比較したときの今の画像・差分画像
+    build\                     リリース作成の作業場所
+  dist\                        作成したリリース（*.accde と *.json）
+  access-deploy.json           配布の設定
+  tools\access-vsc\            CI 用のスクリプト（テスト・CI/CD の準備で作成）
+  .github\workflows\           access-ci.yml / access-release.yml
+  .githooks\pre-commit         コミット前のコードチェック</code></pre>
+  <p>オブジェクト名にファイル名で使えない文字（<code>\ / : * ? " &lt; &gt; | %</code>）があると <code>%XX</code> に置き換わります（例：<code>売上?</code> → <code>売上%3F.txt</code>）。</p>
+</section>
+
+<section id="formats">
+  <h2>ファイルの書き方</h2>
+  <div class="table-wrap"><table>
+    <tr><th>ファイル</th><th>書き方</th><th>注意</th></tr>
+    <tr><td>標準モジュール <code>.bas</code></td><td>普通の VBA。ファイル名がモジュール名</td><td>VBE で書き出した <code>Attribute VB_Name</code> 行があっても可</td></tr>
+    <tr><td>クラスモジュール <code>.cls</code></td><td>先頭に <code>Attribute VB_...</code> の 4 行、続けて VBA</td><td>VBE 形式（<code>VERSION 1.0 CLASS</code> から始まる）も可。<code>.bas</code> ⇔ <code>.cls</code> を変えると作り直される</td></tr>
+    <tr><td>フォーム・レポート <code>.txt</code></td><td>Access の SaveAsText 形式。<code>Begin 種類 … End</code> が 1 つの項目。<code>CodeBehindForm</code> 以降が VBA</td><td><code>PrtMip</code>・<code>PrtDevMode</code> などのバイナリ行は編集しない。<code>LayoutCached*</code> は無視してよい</td></tr>
+    <tr><td>マクロ <code>.txt</code></td><td>SaveAsText 形式</td><td>—</td></tr>
+    <tr><td>クエリ <code>.sql</code></td><td>Access の SQL を 1 つ</td><td>パススルークエリは先頭に <code>-- accessvsc: {...}</code>（接続情報）。パスワードは <code>***</code> に伏せられ、反映時は既存の接続を維持</td></tr>
+    <tr><td>テーブル <code>.json</code></td><td>項目名・型・サイズ・必須・既定値・説明・インデックス・リンク先</td><td>見るだけ。変更は Access の画面か DDL（ALTER TABLE など）で</td></tr>
+    <tr><td><code>references.json</code></td><td>VBA の参照設定（名前・GUID・版・ファイルの場所・組み込みか・参照不可か）</td><td>見るだけ。変更は Access の［ツール］→［参照設定］で行い、取り出し直す</td></tr>
+  </table></div>
+  <div class="callout warn"><b>文字コード</b>ファイルは UTF-8 で編集しますが、VBA は Access の中で Shift-JIS で保存されます。絵文字・一部の記号は <code>?</code> に化けます（コードチェックで検出）。</div>
+</section>
+
+<section id="twip">
+  <h2>帳票の単位と用紙</h2>
+  <p><b>1 cm = 567 twip</b>、1 mm ≒ 56.7 twip、1 インチ = 1440 twip。</p>
+  <div class="table-wrap"><table>
+    <tr><th>cm</th><td>0.5</td><td>1</td><td>2</td><td>3</td><td>5</td><td>10</td><td>15</td><td>19</td></tr>
+    <tr><th>twip</th><td>284</td><td>567</td><td>1134</td><td>1701</td><td>2835</td><td>5670</td><td>8505</td><td>10773</td></tr>
+  </table></div>
+  <h3>用紙と印刷可能幅</h3>
+  <p>印刷可能幅 = 用紙の幅 − 左余白 − 右余白。帳票の幅（<code>Begin Report</code> 直下の Width）がこれを超えると白紙ページが出ます。</p>
+  <div class="table-wrap"><table>
+    <tr><th>用紙</th><th>縦の幅</th><th>横の幅</th><th>縦・余白左右 10 mm の印刷可能幅</th></tr>
+    <tr><td>A4</td><td>21.0 cm</td><td>29.7 cm</td><td>19.0 cm（10,772 twip）</td></tr>
+    <tr><td>A3</td><td>29.7 cm</td><td>42.0 cm</td><td>27.7 cm（15,704 twip）</td></tr>
+    <tr><td>B4</td><td>25.7 cm</td><td>36.4 cm</td><td>23.7 cm（13,436 twip）</td></tr>
+    <tr><td>B5</td><td>18.2 cm</td><td>25.7 cm</td><td>16.2 cm（9,185 twip）</td></tr>
+    <tr><td>A5</td><td>14.8 cm</td><td>21.0 cm</td><td>12.8 cm（7,257 twip）</td></tr>
+    <tr><td>Letter</td><td>21.6 cm</td><td>27.9 cm</td><td>19.6 cm（11,106 twip）</td></tr>
+    <tr><td>Legal</td><td>21.6 cm</td><td>35.6 cm</td><td>19.6 cm（11,106 twip）</td></tr>
+  </table></div>
+  <h3>プレビューで表示される問題</h3>
+  <div class="table-wrap"><table>
+    <tr><th>表示</th><th>意味</th></tr>
+    <tr><td>○○ と △△ が重なっています</td><td>同じセクションで 2 つの項目が重なっている（線・四角・画像は除く）</td></tr>
+    <tr><td>右端が幅を超えています</td><td>項目が帳票の幅からはみ出している</td></tr>
+    <tr><td>下端がセクションの高さを超えています</td><td>項目がセクションの下にはみ出している</td></tr>
+    <tr><td>レポート幅が印刷可能幅を超えています</td><td>用紙に収まらない（白紙ページの原因）</td></tr>
+    <tr><td>位置がマイナスです</td><td>Left か Top がマイナス</td></tr>
+  </table></div>
+</section>
+
+<!-- =========================================================== -->
+<section id="assert">
+  <h2>Assert（テストの確かめ方）</h2>
+  <p>失敗すると、エラー番号 <code>vbObjectError + 9001</code>・Source <code>"Assert"</code> のエラーを発生させ、テストは「失敗」になります。最後の引数 <code>message</code> は省略可（失敗時に表示）。</p>
+  <div class="table-wrap"><table>
+    <tr><th>書き方</th><th>確かめること</th></tr>
+    <tr><td><code>Assert.AreEqual 期待値, 実際 [, message]</code></td><td>等しい。文字列と数値は別物として扱う（<code>"1"</code> と <code>1</code> は違う）。Null 同士は等しい</td></tr>
+    <tr><td><code>Assert.AreNotEqual 値, 実際 [, message]</code></td><td>等しくない</td></tr>
+    <tr><td><code>Assert.AreClose 期待値, 実際 [, 誤差] [, message]</code></td><td>小数が誤差以内で等しい（誤差の既定は 0.000001）</td></tr>
+    <tr><td><code>Assert.IsTrue 条件</code> / <code>Assert.IsFalse 条件</code></td><td>True / False</td></tr>
+    <tr><td><code>Assert.IsNullValue 値</code> / <code>Assert.IsNotNullValue 値</code></td><td>Null である / ない</td></tr>
+    <tr><td><code>Assert.IsNothing obj</code> / <code>Assert.IsNotNothing obj</code></td><td>Nothing である / ない</td></tr>
+    <tr><td><code>Assert.Contains 文字列, 部分</code></td><td>部分が含まれる（大文字小文字を区別）</td></tr>
+    <tr><td><code>Assert.Fail [理由]</code></td><td>その場で失敗</td></tr>
+  </table></div>
+</section>
+
+<section id="tests">
+  <h2>テストの決まり</h2>
+  <ul>
+    <li>テスト = 標準モジュール（<code>modules/*.bas</code>）にある、名前が <code>Test_</code> で始まる<b>引数なしの Public Sub / Function</b></li>
+    <li>同じモジュールの <code>Public Sub TestSetup()</code> / <code>TestTeardown()</code> は、各テストの前 / 後に呼ばれる</li>
+    <li>テストは <code>.accessvsc\test\</code> に作った<b>データベースのコピー</b>で実行される（リンクテーブルの先は本物）</li>
+    <li>実行されるのは<b>反映済み</b>の内容（未反映の変更があると注意が出る）</li>
+    <li>結果：成功（✔）／失敗（Assert が満たされない）／エラー（実行時エラー。エラーの行も表示）</li>
+    <li>JUnit 形式の結果：<code>.accessvsc\test-results\junit.xml</code></li>
+    <li>テスト中の MsgBox は自動で答える（OK だけなら OK、確認の質問は「キャンセル」／「いいえ」）。InputBox・モーダルフォームは時間切れの原因になる</li>
+  </ul>
+</section>
+
+<section id="lint">
+  <h2>コードチェックの項目</h2>
+  <p>Access を使わずにソースフォルダを調べます（保存時・コミット前・CI）。</p>
+  <div class="table-wrap"><table>
+    <tr><th>項目</th><th>重さ</th><th>内容</th></tr>
+    <tr><td><code>sjis</code></td><td>エラー</td><td>Shift-JIS で表せない文字（Access に入れると ? になる）</td></tr>
+    <tr><td><code>empty-sql</code></td><td>エラー</td><td>クエリの SQL が空</td></tr>
+    <tr><td><code>option-explicit</code></td><td>警告</td><td>Option Explicit がない（モジュール・フォーム／レポートのコード）</td></tr>
+    <tr><td><code>stop-statement</code></td><td>警告</td><td>Stop 文が残っている</td></tr>
+    <tr><td><code>layout-width</code></td><td>警告</td><td>帳票・フォームの項目の右端が幅を超えている</td></tr>
+    <tr><td><code>layout-section</code></td><td>警告</td><td>項目の下端がセクションの高さを超えている</td></tr>
+    <tr><td><code>readonly-edited</code></td><td>警告</td><td>見るだけのファイル（テーブル定義・参照設定など）が編集されている</td></tr>
+    <tr><td><code>implicit-variant</code></td><td>警告</td><td>変数・引数の型（<code>As ...</code>）が書かれていない（暗黙の Variant）。<code>Dim a, b As Long</code> の <code>a</code> も対象</td></tr>
+    <tr><td><code>unused-variable</code></td><td>警告</td><td>手続きの中で宣言したのに使っていない変数</td></tr>
+    <tr><td><code>broken-reference</code></td><td>警告</td><td>VBA の参照設定が「参照不可」（<code>references.json</code>）。コンパイルできない原因になる</td></tr>
+    <tr><td><code>implicit-variant-return</code></td><td>情報</td><td>Function / Property Get の戻り値の型が書かれていない</td></tr>
+  </table></div>
+  <p>エラーがあるとコミット前チェックと CI が失敗します。警告は失敗にはなりません。</p>
+  <figure class="shot"><a href="images/t16-lint.png" target="_blank"><img src="images/t16-lint.png" alt="コードチェック" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>保存したときのコードチェック。波線と「問題」パネルに表示されます。</figcaption></figure>
+</section>
+
+<section id="snapshot">
+  <h2>帳票スナップショット</h2>
+  <ul>
+    <li>基準画像：<code>&lt;ソースフォルダ&gt;\snapshots\&lt;レポート名&gt;_p&lt;ページ&gt;.png</code>（git にコミットする）</li>
+    <li>状態：<b>同じ</b>／<b>変化あり</b>（差分画像あり）／<b>基準なし</b>／<b>基準を更新</b>／<b>エラー</b>（例：データがなく帳票が開けない）</li>
+    <li>比べ方：ピクセルごとに比べ、色の差が 32 以下なら同じとみなす。違うピクセルが 1 つでもあれば「変化あり」（CLI の <code>-Threshold</code> で許容する割合 % を指定できる）</li>
+    <li>ページ数が変わると「ページ追加」「ページ削除」</li>
+    <li>比べるのは 1 帳票あたり最初の 5 ページ（CLI の <code>-Pages</code> で変更）</li>
+  </ul>
+</section>
+
+<section id="cicd">
+  <h2>CI/CD のファイル</h2>
+  <div class="table-wrap"><table>
+    <tr><th>ファイル</th><th>作られるとき</th><th>内容</th></tr>
+    <tr><td><code>.github/workflows/access-ci.yml</code></td><td>テスト・CI/CD を準備</td><td>push・プルリクエストで実行。lint（クラウド）→ test（ラベル <code>access</code> のセルフホストランナー：全取り込み・テスト・帳票比較・成果物の保存）</td></tr>
+    <tr><td><code>.github/workflows/access-release.yml</code></td><td>配布の設定</td><td>タグ <code>v*</code> の push または手動実行で、取り込み → テスト → リリース作成 → 配布</td></tr>
+    <tr><td><code>.githooks/pre-commit</code></td><td>テスト・CI/CD を準備</td><td>コミット前にコードチェック。エラーがあると止める（<code>git commit --no-verify</code> で回避可）</td></tr>
+    <tr><td><code>tools/access-vsc/</code></td><td>テスト・CI/CD を準備（毎回更新）</td><td>CI とフックが使うスクリプト一式</td></tr>
+    <tr><td><code>modules/Assert.bas</code>, <code>Test_Example.bas</code></td><td>テスト・CI/CD を準備（無い場合のみ）</td><td>アサーションとテストの例</td></tr>
+    <tr><td><code>.gitattributes</code> / <code>.gitignore</code></td><td>テスト・CI/CD を準備（足りない行だけ追記）</td><td>ソースは CRLF、DB はバイナリ、<code>.accessvsc/</code> などは除外</td></tr>
+  </table></div>
+</section>
+
+<section id="deploy">
+  <h2>配布</h2>
+  <h3>access-deploy.json</h3>
+  <div class="table-wrap"><table>
+    <tr><th>項目</th><th>既定</th><th>内容</th></tr>
+    <tr><td><code>appName</code></td><td>DB 名</td><td>アプリ名（配布ファイル名・利用者 PC のフォルダ名）</td></tr>
+    <tr><td><code>output</code></td><td><code>dist</code></td><td>リリースの出力先</td></tr>
+    <tr><td><code>deployTo</code></td><td>—</td><td>配布先の共有フォルダ</td></tr>
+    <tr><td><code>backend.path</code></td><td>—</td><td>リリース時に張り替える本番のバックエンド DB（省略で張り替えない）</td></tr>
+    <tr><td><code>backend.from</code></td><td>—</td><td>（任意）このファイル名のバックエンドへのリンクだけ張り替える</td></tr>
+    <tr><td><code>keepReleases</code></td><td>10</td><td>共有フォルダに残す過去の版の数</td></tr>
+  </table></div>
+  <h3>リリースを作成（build）</h3>
+  <ol><li>DB を <code>.accessvsc\build\</code> にコピー</li><li>DB プロパティ <code>AppVersion</code>・<code>AppBuiltAt</code> を書き込み</li><li>Access のリンクテーブル（<code>DATABASE=</code> のもの）を <code>backend.path</code> に張り替えて RefreshLink</li><li>コンパイル</li><li><code>.accde</code> を作成（Access のウィンドウが一瞬、最小化で表示される）</li><li><code>dist\&lt;アプリ名&gt;_&lt;版&gt;.accde</code> と <code>.json</code>（SHA-256・作成日時・コミット・張り替え結果）</li></ol>
+  <h3>配布する（deploy）後の共有フォルダ</h3>
+<pre><code>\\server\share\Shop\
+  Start-Shop.cmd          利用者が起動する
+  launcher.ps1            起動時に版を確認して、新しければ %LOCALAPPDATA%\AccessApps\Shop にコピーして開く
+  version.json            appName / version / file / sha256 / publishedAt / publishedBy
+  app\Shop.accde          現在の版
+  releases\1.2.0\         過去の版（keepReleases 個まで）</code></pre>
+  <ul>
+    <li>ランチャーはダウンロードしたファイルの SHA-256 を確かめる。古い版を使用中なら「閉じてから起動し直して」と表示</li>
+    <li>前の版に戻す：「配布する」で <code>dist</code> の前の版を選ぶ（CLI は <code>deploy -Yes -From</code>）</li>
+    <li>.accde は作成した Access と同じビット数の Office でしか動かない</li>
+    <li>ランチャーは「信頼できる場所」を登録しない（必要なら管理者が設定）</li>
+  </ul>
+</section>
+
+<!-- =========================================================== -->
+<section id="errors">
+  <h2>エラーと対処</h2>
+  <div class="table-wrap"><table>
+    <tr><th>表示</th><th>原因</th><th>対処</th></tr>
+    <tr><td>データベースが Access などで開かれています</td><td>同じ DB を Access で開いている</td><td>Access を閉じて、もう一度</td></tr>
+    <tr><td>コンパイル エラー: …（○○ の N 行目）</td><td>VBA の書き間違い</td><td>赤い波線の行を直して反映</td></tr>
+    <tr><td>実行時エラー 'N': …</td><td>実行中のエラー（0 除算・型・Null など）</td><td>赤い波線の行を確認して直す</td></tr>
+    <tr><td>時間内に終わらなかったため、Access を終了しました</td><td>InputBox・モーダルフォームの入力待ち、無限ループ、重い処理</td><td>入力待ちをなくす／設定の Timeout Sec を延ばす</td></tr>
+    <tr><td>Access が正しく終了しなかったため、強制終了しました</td><td>Access の終了処理が止まった（処理自体は完了）</td><td>もう一度実行。続くなら Access の更新を確認</td></tr>
+    <tr><td>N 件のファイルを取り込めませんでした</td><td>SQL の文法、フォームのテキストの書き間違いなど</td><td>表示されたファイルと理由を確認して直す</td></tr>
+    <tr><td>この SQL はデータを書き換えるため、ここでは実行できません</td><td>「データを見る」は読み取り専用</td><td>更新は Access の画面か、CLI の <code>sql -Write</code> で</td></tr>
+    <tr><td>未インポートの変更が N 件あります（取り出すとき）</td><td>ファイル側に未反映の変更がある</td><td>［先にインポートする］か［上書きしてエクスポート］</td></tr>
+    <tr><td>使うデータベースが決まっていません</td><td>フォルダに .accdb がない／複数ある</td><td>「データベースを選択」</td></tr>
+    <tr><td>Shift-JIS で表せない文字があります</td><td>絵文字など</td><td>別の文字に置き換える</td></tr>
+    <tr><td>テストが見つかりません</td><td>名前・引数・Private・.cls</td><td>標準モジュールに <code>Public Sub Test_○○()</code></td></tr>
+    <tr><td>Unimported source changes are NOT included in this test run</td><td>未反映の変更がある状態でテスト</td><td>反映してからテスト</td></tr>
+    <tr><td>帳票の比較が毎回「変化あり」</td><td>日付など毎回変わる内容を印刷</td><td><code>-Threshold 0.1</code> など</td></tr>
+    <tr><td>.accde を開くとセキュリティの警告</td><td>信頼できる場所でない</td><td>管理者に「信頼できる場所」の登録を依頼</td></tr>
+    <tr><td>コミットできない</td><td>コミット前チェックでエラー</td><td>表示されたエラーを直す</td></tr>
+    <tr><td>Access アイコンが出ない</td><td>インストール後に再読み込みしていない</td><td>Reload Window</td></tr>
+  </table></div>
+  <p>原因がわからないときは「その他」→「ログを表示」で、操作ごとの詳しい結果（JSON）を確認できます。</p>
+</section>
+
+<section id="limits">
+  <h2>動作環境と制限</h2>
+  <ul>
+    <li>Windows 10 / 11、Microsoft Access（Microsoft 365 または 2016 以降。<b>Access Runtime のみは不可</b>）、VS Code 1.101 以降、Windows PowerShell 5.1</li>
+    <li>操作のたびに Access を裏で起動する（1 回 4〜10 秒程度）</li>
+    <li>AutoExec マクロ・スタートアップ フォームは操作のたびに動く</li>
+    <li>VBA は Shift-JIS（絵文字など不可）</li>
+    <li>MsgBox は自動で答える：OK だけの通知は OK、確認の質問（はい／いいえ、OK／キャンセル）は安全側の「キャンセル」→「いいえ」。InputBox・モーダルフォームは時間切れ</li>
+    <li>書き込み系（反映・コンパイル・ページ設定・更新 SQL）は、DB を Access で開いていると実行できない</li>
+    <li>反映・ページ設定・更新 SQL の前に自動バックアップ（<code>.accessvsc\backups</code>、最新 10 個）</li>
+    <li>パススルークエリなどの接続文字列のパスワードは、取り出したファイルでは <code>***</code></li>
+  </ul>
+</section>
+
+<section id="security">
+  <h2>セキュリティ</h2>
+  <ul>
+    <li><b>信頼できる DB・フォルダだけで使う。</b>操作のたびに DB を開くため、AutoExec や VBA が動く。VS Code の信頼されていないワークスペース（制限モード）では無効</li>
+    <li>AI に VBA・SQL を実行させるツール（<code>access_run</code>・<code>access_eval</code>・<code>access_sql</code> の write）は、自動承認にしないのがおすすめ。読み取り専用のツールには <code>readOnlyHint</code>、書き換えるツールには <code>destructiveHint</code> を付けている</li>
+    <li>ダイアログには安全側で答える（確認の質問は「キャンセル」／「いいえ」）</li>
+    <li>書き込みの前に自動でバックアップを取る。終了させるのは自分が起動した Access だけ</li>
+    <li>CI テンプレートの test ジョブは、フォークからの PR では動かない。権限は <code>contents: read</code>。公開リポジトリでは、外部コントリビューターのワークフローに承認を必須にする設定も推奨</li>
+    <li>ランチャーは共有フォルダ内のファイルだけを使い、SHA-256 が一致しないファイルは起動しない</li>
+  </ul>
+</section>
+
+<section id="ai">
+  <h2>AI 連携・MCP ツール</h2>
+  <h3>AI エージェント連携を設定 で作られるもの</h3>
+  <div class="table-wrap"><table>
+    <tr><th>AI</th><th>ファイル</th><th>内容</th></tr>
+    <tr><td>Claude Code</td><td><code>.mcp.json</code></td><td>MCP サーバー <code>access</code> の登録（<code>%LOCALAPPDATA%\access-vscode\bin\mcp-server.ps1</code>）</td></tr>
+    <tr><td>Claude Code</td><td><code>CLAUDE.md</code></td><td>作業手順・注意（<code>&lt;!-- access-vsc:begin --&gt;</code> から <code>end</code> までの部分を更新）</td></tr>
+    <tr><td>GitHub Copilot</td><td><code>.github/copilot-instructions.md</code></td><td>同上（MCP サーバーは拡張機能が自動で登録）</td></tr>
+    <tr><td>その他</td><td><code>AGENTS.md</code></td><td>同上</td></tr>
+  </table></div>
+  <h3>MCP ツール</h3>
+  <div class="table-wrap"><table>
+    <tr><th>ツール</th><th>内容</th><th>主な引数</th></tr>
+    <tr><td><code>access_status</code></td><td>未反映の変更（Access 不要）</td><td>—</td></tr>
+    <tr><td><code>access_list</code></td><td>オブジェクト一覧</td><td>—</td></tr>
+    <tr><td><code>access_export</code></td><td>取り出す</td><td><code>force</code>, <code>kinds</code></td></tr>
+    <tr><td><code>access_import</code></td><td>反映＋コンパイル</td><td><code>files</code>, <code>all</code>, <code>deleteMissing</code>, <code>compile</code></td></tr>
+    <tr><td><code>access_compile</code></td><td>コンパイル</td><td>—</td></tr>
+    <tr><td><code>access_run</code></td><td>VBA 実行</td><td><code>function</code>, <code>args</code></td></tr>
+    <tr><td><code>access_eval</code></td><td>式の評価</td><td><code>expression</code></td></tr>
+    <tr><td><code>access_sql</code></td><td>SQL（既定は読み取り専用）</td><td><code>sql</code>, <code>limit</code>, <code>write</code></td></tr>
+    <tr><td><code>access_report_layout</code></td><td>帳票のレイアウト・用紙・問題点</td><td><code>report</code>, <code>objectType</code></td></tr>
+    <tr><td><code>access_report_preview</code></td><td>帳票の画像（AI に画像を返す）</td><td><code>report</code>, <code>where</code>, <code>pages</code></td></tr>
+    <tr><td><code>access_report_pagesetup</code></td><td>用紙・向き・余白・幅</td><td><code>report</code>, <code>paperSize</code>, <code>orientation</code>, <code>marginTop</code>…, <code>widthCm</code></td></tr>
+    <tr><td><code>access_test</code></td><td>テスト</td><td><code>filter</code></td></tr>
+    <tr><td><code>access_lint</code></td><td>コードチェック</td><td>—</td></tr>
+    <tr><td><code>access_report_snapshot</code></td><td>帳票の見た目の比較（差分画像を返す）</td><td><code>reports</code>, <code>update</code>, <code>threshold</code></td></tr>
+    <tr><td><code>access_setup_ci</code></td><td>テスト・CI の準備</td><td><code>root</code>, <code>gitInit</code>, <code>force</code></td></tr>
+    <tr><td><code>access_build</code></td><td>リリース作成（<b>配布はできない</b>）</td><td><code>version</code></td></tr>
+  </table></div>
+  <p>すべてのツールで <code>database</code>（.accdb のパス）を指定できます（省略時はサーバー起動時の DB）。</p>
+</section>
+
+<section id="cli">
+  <h2>コマンドライン（CLI）</h2>
+  <p>VS Code を使わずに、ターミナル・バッチ・CI から同じ操作ができます。</p>
+<pre><code>$A = "$env:LOCALAPPDATA\access-vscode\bin\access.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File $A &lt;コマンド&gt; -DbPath .\shop.accdb [オプション]</code></pre>
+  <div class="table-wrap"><table>
+    <tr><th>コマンド</th><th>内容</th><th>オプション</th></tr>
+    <tr><td><code>status</code></td><td>未反映の変更（Access 不要）</td><td>—</td></tr>
+    <tr><td><code>export</code></td><td>取り出す</td><td><code>-Force</code>（未反映を上書き）, <code>-Kinds modules,queries</code></td></tr>
+    <tr><td><code>import</code></td><td>反映＋コンパイル</td><td><code>-Files modules/x.bas</code>, <code>-All</code>, <code>-DeleteMissing</code>, <code>-NoCompile</code></td></tr>
+    <tr><td><code>compile</code></td><td>コンパイル</td><td>—</td></tr>
+    <tr><td><code>run</code></td><td>VBA 実行</td><td><code>-Function 名前</code>, <code>-ArgsJson "[1, 'abc']"</code> または <code>-Arg a,b</code></td></tr>
+    <tr><td><code>eval</code></td><td>式の評価</td><td><code>-Expr "DCount('*','T1')"</code></td></tr>
+    <tr><td><code>sql</code></td><td>SQL</td><td><code>-Sql "SELECT ..."</code>, <code>-Limit 100</code>, <code>-Write</code></td></tr>
+    <tr><td><code>list</code></td><td>オブジェクト一覧</td><td>—</td></tr>
+    <tr><td><code>layout</code></td><td>帳票のレイアウト</td><td><code>-Report 名前</code>, <code>-ObjectType report|form</code></td></tr>
+    <tr><td><code>preview</code></td><td>PDF・PNG</td><td><code>-Report</code>, <code>-Where "条件"</code>, <code>-Pages 3</code></td></tr>
+    <tr><td><code>pagesetup</code></td><td>用紙設定</td><td><code>-PaperSize A4</code>, <code>-Orientation landscape</code>, <code>-Margins "10,10,15,15"</code>, <code>-WidthCm</code></td></tr>
+    <tr><td><code>test</code></td><td>テスト</td><td><code>-Filter "Test_Tax*"</code>, <code>-JUnit 結果.xml</code>, <code>-Summary 概要.md</code>, <code>-NoLocate</code></td></tr>
+    <tr><td><code>lint</code></td><td>コードチェック（Access・DB 不要）</td><td><code>-Src ソースフォルダ</code></td></tr>
+    <tr><td><code>snapshot</code></td><td>帳票の見た目の比較</td><td><code>-Reports "rpt*"</code>, <code>-Update</code>, <code>-Threshold 0.1</code>, <code>-Tolerance 32</code>, <code>-Pages 5</code>, <code>-Summary</code></td></tr>
+    <tr><td><code>setup-ci</code></td><td>テスト・CI の準備</td><td><code>-Root</code>, <code>-GitInit</code>, <code>-Force</code></td></tr>
+    <tr><td><code>deploy-init</code></td><td>配布の設定</td><td><code>-AppName</code>, <code>-DeployTo</code>, <code>-BackendPath</code>, <code>-Force</code></td></tr>
+    <tr><td><code>build</code></td><td>リリース作成</td><td><code>-Version 1.2.0</code>, <code>-Config</code></td></tr>
+    <tr><td><code>deploy</code></td><td>配布（<code>-Yes</code> がないと予行だけ）</td><td><code>-Yes</code>, <code>-Version</code>, <code>-From dist\x.accde</code></td></tr>
+  </table></div>
+  <h3>共通のオプション</h3>
+  <div class="table-wrap"><table>
+    <tr><th>オプション</th><th>内容</th></tr>
+    <tr><td><code>-DbPath</code></td><td>データベース（省略時：今のフォルダに 1 つだけある .accdb、または環境変数 <code>ACCESSVSC_DB</code>）</td></tr>
+    <tr><td><code>-Src</code></td><td>ソースフォルダ（省略時：<code>&lt;DB&gt;.src</code>、または <code>ACCESSVSC_SRC</code>）</td></tr>
+    <tr><td><code>-Text</code></td><td>人が読む形で出力（GitHub Actions 上では注釈も出す）。省略時は JSON</td></tr>
+    <tr><td><code>-Compress</code></td><td>JSON を 1 行で出力</td></tr>
+    <tr><td><code>-TimeoutSec</code></td><td>打ち切るまでの秒数</td></tr>
+    <tr><td><code>-NoBackup</code></td><td>反映などの前のバックアップを取らない（CI 向け）</td></tr>
+    <tr><td><code>-ParamsFile</code></td><td>パラメーターを JSON ファイルで渡す</td></tr>
+  </table></div>
+  <h3>結果（JSON）</h3>
+  <p><code>ok</code>（成否）、<code>command</code>、<code>database</code>、<code>source</code>、<code>result</code>（コマンドごとの結果）、<code>error</code>、<code>warnings</code>、<code>dialogs</code>（自動で答えたダイアログ）、<code>runtimeError</code>（実行時エラーの場所）、<code>backup</code>、<code>elapsedMs</code>。失敗時の終了コードは 1。</p>
+</section>
+
+<section id="glossary">
+  <h2>用語集</h2>
+  <dl class="glossary">
+    <dt>取り出す（エクスポート）</dt><dd>Access の中身をテキストファイルに書き出すこと。</dd>
+    <dt>反映する（インポート）</dt><dd>テキストファイルの内容を Access に取り込むこと。続けてコンパイルする。</dd>
+    <dt>未反映</dt><dd>ファイルを変えたが、まだ Access に取り込んでいない状態。</dd>
+    <dt>ソースフォルダ</dt><dd>取り出したファイルが入るフォルダ（例 shop.accdb.src）。</dd>
+    <dt>コンパイル</dt><dd>VBA に文法・参照の間違いがないか確かめること。</dd>
+    <dt>twip（トゥイップ）</dt><dd>Access の帳票の長さの単位。1 cm = 567 twip。</dd>
+    <dt>印刷可能幅</dt><dd>用紙の幅から左右の余白を引いた幅。帳票の幅がこれを超えると白紙ページが出る。</dd>
+    <dt>.accde</dt><dd>コードを見たり変えたりできない、配布用の Access ファイル。</dd>
+    <dt>フロントエンド / バックエンド</dt><dd>画面・プログラムの入った DB と、データだけが入った DB。</dd>
+    <dt>リンクテーブル</dt><dd>別の DB のテーブルを、自分の DB から使えるようにつないだもの。</dd>
+    <dt>テスト（ユニットテスト）</dt><dd>関数が正しい結果を返すかを自動で確かめる小さなプログラム。</dd>
+    <dt>コードチェック（lint）</dt><dd>動かさずにソースを読んで、問題になりそうな所を見つけること。</dd>
+    <dt>スナップショット / 基準画像</dt><dd>帳票の「正しい見た目」として保存した画像。</dd>
+    <dt>git / コミット</dt><dd>変更履歴を記録する仕組み / その 1 回分の記録。</dd>
+    <dt>CI / CD</dt><dd>変更のたびに自動でテストする仕組み / 自動で配布する仕組み。</dd>
+    <dt>セルフホストランナー</dt><dd>GitHub Actions の処理を、自分で用意した PC で動かす仕組み。Access が必要なテストに使う。</dd>
+    <dt>MCP</dt><dd>AI がアプリやツールを操作するための共通の仕組み。</dd>
+    <dt>CodeLens</dt><dd>エディタの行の上に出る小さなボタン（「▶ Access で実行」など）。</dd>
+  </dl>
+</section>
+</main>
+</div>
+<a class="back" href="#">▲ 先頭へ</a>
+<script src="assets/docs.js"></script>
+</body>
+</html>

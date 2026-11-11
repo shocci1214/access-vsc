@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Access Object (SaveAsText)",
+  "scopeName": "source.access-object",
+  "patterns": [
+    {
+      "begin": "^(CodeBehind(?:Form|Report))\\s*$",
+      "beginCaptures": { "1": { "name": "keyword.control.access-object" } },
+      "end": "(?=\\z)",
+      "contentName": "meta.embedded.block.vba",
+      "patterns": [{ "include": "source.vba" }]
+    },
+    { "name": "comment.line.apostrophe.access-object", "match": "^\\s*'.*$" },
+    {
+      "match": "^\\s*(Begin)(\\s+\\w+)?\\s*$",
+      "captures": { "1": { "name": "keyword.control.access-object" }, "2": { "name": "entity.name.type.access-object" } }
+    },
+    { "name": "keyword.control.access-object", "match": "^\\s*End\\s*$" },
+    { "name": "comment.block.binary.access-object", "match": "^\\s*0x[0-9a-fA-F,]+\\s*$" },
+    {
+      "match": "^\\s*([A-Za-z_][\\w]*)\\s*(=)",
+      "captures": { "1": { "name": "variable.other.property.access-object" }, "2": { "name": "keyword.operator.access-object" } }
+    },
+    {
+      "name": "string.quoted.double.access-object",
+      "begin": "\"",
+      "end": "\"(?!\")",
+      "patterns": [{ "name": "constant.character.escape.access-object", "match": "\"\"" }]
+    },
+    { "name": "constant.numeric.access-object", "match": "-?\\b\\d+\\b" }
+  ]
+}

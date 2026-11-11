@@ -1,0 +1,60 @@
+# Access VSC が作成した CI ワークフロー
+#
+#   lint  … Access 不要のコードチェック。GitHub のクラウド環境（windows-latest）で動く
+#   test  … Access が必要。Access を入れた Windows PC を「セルフホストランナー」として登録して動かす
+#           1) GitHub のリポジトリ → Settings → Actions → Runners → New self-hosted runner（Windows）
+#           2) ラベルに access を追加
+#           3) ランナーはサービスではなく、ログオンしたユーザーで run.cmd を起動しておく
+#              （Office の自動操作はサービス（セッション 0）では正しく動かないため）
+#
+name: Access CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+# 必要最小限の権限（コードを読むだけ）
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: コードチェック（Access 不要）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File "{{TOOLS}}/access.ps1" lint -Src "{{SRC}}" -Text
+
+  test:
+    name: 取り込み・コンパイル・テスト（Access）
+    needs: lint
+    # セキュリティ：フォーク（外部の人）からのプルリクエストでは、Access の入った PC で動かさない
+    # （他人のコードが自分の PC で実行されるのを防ぐ。公開リポジトリでは特に重要）
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, windows, access]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: ソースをすべて Access に取り込み、コンパイル
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File "{{TOOLS}}/access.ps1" import -All -DbPath "{{DB}}" -NoBackup
+      - name: VBA テスト
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File "{{TOOLS}}/access.ps1" test -DbPath "{{DB}}" -JUnit test-results/junit.xml -Summary "$env:GITHUB_STEP_SUMMARY" -Text
+      - name: 帳票の見た目の比較（スナップショット）
+        if: always()
+        shell: powershell
+        # 基準画像（{{SRC}}/snapshots/*.png）と違えば失敗。日付を印刷する帳票があるときは -Threshold 0.1 などを付ける
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File "{{TOOLS}}/access.ps1" snapshot -DbPath "{{DB}}" -Text -Summary "$env:GITHUB_STEP_SUMMARY"
+      - name: 結果を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: access-test-results
+          path: |
+            test-results/
+            {{DBDIR}}.accessvsc/snapshots/

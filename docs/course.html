@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Access VSC 学習コース</title>
+<meta name="description" content="Access VSC を使いこなすための学習コース。初級・中級・上級の 3 段階で、到達目標・演習・理解度チェック付き。">
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+<div class="topnav"><div class="in">
+  <a class="brand" href="index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5" rx="7" ry="2.6"/><path d="M3 5v13c0 1.4 3.1 2.6 7 2.6"/><path d="M17 5v4"/><path d="M3 11.5c0 1.4 3.1 2.6 7 2.6"/><path d="M13.5 21l3.5-9 3.5 9"/><path d="M14.8 18h4.4"/></svg><span>Access VSC</span></a>
+  <a class="tab" href="index.html">ホーム</a>
+  <a class="tab" href="tutorial.html">チュートリアル</a>
+  <a class="tab on" href="course.html">学習コース</a>
+  <a class="tab" href="reference.html">リファレンス</a>
+  <span class="sp"></span><button type="button" data-theme-toggle>ライト / ダーク</button>
+</div></div>
+
+<div class="layout">
+<nav class="toc" aria-label="目次">
+  <div class="h">学習コース</div>
+  <ol>
+    <li><a href="#about">このコースについて</a></li>
+    <li><a href="#beginner">初級</a>
+      <ol>
+        <li><a href="#b1">1. 仕組みを理解する</a></li>
+        <li><a href="#b2">2. 毎日の流れ</a></li>
+        <li><a href="#b3">3. VS Code の基本操作</a></li>
+        <li><a href="#b4">4. エラーと付き合う</a></li>
+        <li><a href="#b5">5. 自分の DB で始める</a></li>
+      </ol></li>
+    <li><a href="#intermediate">中級</a>
+      <ol>
+        <li><a href="#i1">1. 帳票レイアウトの考え方</a></li>
+        <li><a href="#i2">2. AI と協働する</a></li>
+        <li><a href="#i3">3. git で履歴を残す</a></li>
+        <li><a href="#i4">4. テストの考え方</a></li>
+      </ol></li>
+    <li><a href="#advanced">上級</a>
+      <ol>
+        <li><a href="#a1">1. 品質を仕組みにする</a></li>
+        <li><a href="#a2">2. CI（自動チェック）</a></li>
+        <li><a href="#a3">3. 配布と運用</a></li>
+        <li><a href="#a4">4. 直しやすい VBA の設計</a></li>
+      </ol></li>
+    <li><a href="#graduate">修了チェック</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kind">COURSE</div>
+  <h1>学習コース</h1>
+  <p>Access VSC を「使える」から「使いこなせる」へ。初級・中級・上級の 3 段階で、仕組みや考え方を理解し、自分の仕事のデータベースで実践できるようになることを目指します。</p>
+  <div class="meta"><span class="pill">前提：<a href="tutorial.html">チュートリアル</a>を一度終えていること</span><span class="pill">到達目標のチェックはこのブラウザに保存されます</span></div>
+</header>
+
+<section id="about">
+  <h2>このコースについて</h2>
+  <div class="table-wrap"><table>
+    <tr><th>レベル</th><th>こんな人</th><th>修了すると</th></tr>
+    <tr><td><span class="badge lv1">初級</span></td><td>チュートリアルを終えた人</td><td>自分のデータベースで、毎日の開発を VS Code で安全に回せる</td></tr>
+    <tr><td><span class="badge lv2">中級</span></td><td>毎日の開発に慣れてきた人</td><td>帳票を思いどおりに直せる。AI に任せる・確かめるが上手にできる。git とテストで「壊していない」と言える</td></tr>
+    <tr><td><span class="badge lv3">上級</span></td><td>チームで使う人・まとめ役</td><td>品質のチェックと配布を仕組み化し、チームで安心して開発・運用できる</td></tr>
+  </table></div>
+  <p>各章の構成は <b>到達目標 → 解説 → 演習 → 理解度チェック</b> です。到達目標にチェックを付けると、レベルごとの進み具合がバーで表示されます。</p>
+</section>
+
+<!-- ================================================================= -->
+<section id="beginner">
+  <h2><span class="badge lv1">初級</span>毎日の開発を、安全に回せるようになる</h2>
+  <div class="objectives">
+    <h4>初級の到達目標 <span class="pill" data-progress-label="b-">0 / 0</span></h4>
+    <label><input type="checkbox" data-key="b-1">ファイルと Access の関係（取り出す・反映する）を、自分の言葉で説明できる</label>
+    <label><input type="checkbox" data-key="b-2">「未反映」の表示を見て、次に何をすればよいか判断できる</label>
+    <label><input type="checkbox" data-key="b-3">VS Code で、関数がどこで使われているかを全モジュールから検索できる</label>
+    <label><input type="checkbox" data-key="b-4">コンパイル エラー・実行時エラー・コードチェックの違いがわかり、それぞれ直せる</label>
+    <label><input type="checkbox" data-key="b-5">自分のデータベースを、バックアップを取ったうえで Access VSC で使い始められる</label>
+    <div class="progress" data-progress="b-"><div></div></div>
+  </div>
+
+  <h3 id="b1">1. 仕組みを理解する</h3>
+  <p>Access のデータベース（<code>.accdb</code>）は 1 つの大きなファイルで、中の VBA やクエリは Access でしか見られません。Access VSC は、中身を<b>普通のテキストファイルに書き出し（取り出す）</b>、編集したファイルを<b>Access に書き戻す（反映する）</b>道具です。</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 760 170" role="img" aria-label="取り出すと反映するの関係">
+      <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="20" y="40" width="200" height="90" rx="12"/><rect x="540" y="40" width="200" height="90" rx="12"/>
+        <path d="M222 72 H537" marker-end="url(#ar1)"/><path d="M537 102 H222" marker-end="url(#ar1)"/>
+      </g>
+      <g fill="currentColor" font-size="15" text-anchor="middle" font-family="inherit">
+        <text x="120" y="80" font-weight="700">Access（.accdb）</text><text x="120" y="104" font-size="12.5" opacity=".75">動く本体</text>
+        <text x="640" y="80" font-weight="700">ソースフォルダ</text><text x="640" y="104" font-size="12.5" opacity=".75">編集する場所（テキスト）</text>
+        <text x="380" y="64" font-size="13">① 取り出す（エクスポート）</text>
+        <text x="380" y="124" font-size="13">③ 反映する（インポート）＋ コンパイル</text>
+      </g>
+    </svg>
+  </figure>
+  <h4>なぜテキストにするの？</h4>
+  <div class="concept">
+    <div><h4>探せる</h4><p>全モジュールから一度に検索・置換できる。「この関数はどこで使っている？」がすぐわかる。</p></div>
+    <div><h4>比べられる</h4><p>変更前と変更後を並べて見られる。何を変えたかが一目でわかる。</p></div>
+    <div><h4>履歴が残る</h4><p>git を使えば、いつ・何を変えたかが全部残り、いつでも戻せる。</p></div>
+    <div><h4>AI が扱える</h4><p>AI はテキストを読み書きするのが得意。Access の中身を AI に任せられる。</p></div>
+  </div>
+  <h4>覚えておくこと</h4>
+  <ul>
+    <li><b>正しいのは「動いている Access」</b>：ファイルを編集しただけでは Access は変わりません。反映して初めて変わります</li>
+    <li><b>「未反映」</b>：ファイルを変えたが、まだ Access に入れていない状態。サイドバーとステータスバーに数が出ます</li>
+    <li><b>見るだけのファイル</b>：テーブル定義（<code>tables/*.json</code>）は参考用。編集しても DB は変わりません</li>
+    <li><b>反映の前に自動バックアップ</b>：<code>.accessvsc\backups</code> に最新 10 個が残ります</li>
+  </ul>
+  <div class="quiz">
+    <details><summary>Q1. ファイルを編集して保存しました。Access のモジュールは変わっていますか？</summary><p>変わっていません。「③ Access へ反映する」を押すと変わります。サイドバーには「● 変更あり（未反映）」と出ています。</p></details>
+    <details><summary>Q2. テーブルに項目を足したくて <code>tables/Customers.json</code> を書き換えました。どうなりますか？</summary><p>DB は変わりません（保存するとコードチェックで注意が出ます）。テーブルの変更は Access の画面か SQL（ALTER TABLE など）で行い、その後「取り出す」でファイルを最新にします。</p></details>
+    <details><summary>Q3. Access で DB を開いたまま「反映する」とどうなりますか？</summary><p>「データベースが Access などで開かれています」と出て反映されません。Access を閉じてから実行します。</p></details>
+  </div>
+
+  <h3 id="b2">2. 毎日の流れ</h3>
+  <div class="path"><span>（必要なら）取り出す</span><i>→</i><span>編集・保存</span><i>→</i><span>反映（＋コンパイル）</span><i>→</i><span>実行・プレビューで確かめる</span><i>→</i><span>（区切りで）コミット</span></div>
+  <div class="table-wrap"><table>
+    <tr><th>こんなとき</th><th>やること</th></tr>
+    <tr><td>朝、作業を始める</td><td>ステータスバーの未反映の数を確認。0 ならそのまま編集を始めてよい</td></tr>
+    <tr><td>Access の画面でフォームのデザインを変えた</td><td>Access を閉じてから「① Access から取り出す」でファイルを最新にする</td></tr>
+    <tr><td>VBA を直した</td><td>保存 → 「③ Access へ反映する」→ 赤い波線がなければ実行して確かめる</td></tr>
+    <tr><td>モジュールを削除したい</td><td>ファイルを削除 → 反映（Access からも削除するか聞かれる）</td></tr>
+    <tr><td>反映を忘れがち</td><td>設定の <b>Import On Save</b> をオンにすると、保存するたびに自動で反映</td></tr>
+  </table></div>
+  <div class="callout warn"><b>「取り出す」と「反映」を取り違えない</b>ファイル側に未反映の変更があるのに「取り出す」と、その変更が上書きされる恐れがあります。Access VSC は確認を出しますが、迷ったら<b>先に反映</b>が安全です。</div>
+
+  <h3 id="b3">3. VS Code の基本操作（Access 開発で使うもの）</h3>
+  <div class="table-wrap"><table>
+    <tr><th>やりたいこと</th><th>操作</th><th>VBE でいうと</th></tr>
+    <tr><td>ファイルを名前で開く</td><td><kbd>Ctrl</kbd>+<kbd>P</kbd> → 名前の一部を入力</td><td>プロジェクト エクスプローラー</td></tr>
+    <tr><td><b>全モジュールから検索</b></td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>検索（プロジェクト全体）</td></tr>
+    <tr><td>全モジュールで置換</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd></td><td>置換</td></tr>
+    <tr><td>今のファイル内を検索</td><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>検索（カレント モジュール）</td></tr>
+    <tr><td>行番号へ移動</td><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>—</td></tr>
+    <tr><td>同じ単語をまとめて編集</td><td>単語を選んで <kbd>Ctrl</kbd>+<kbd>D</kbd> を繰り返す</td><td>—</td></tr>
+    <tr><td>2 つのファイルを並べる</td><td>タブを右へドラッグ、または <kbd>Ctrl</kbd>+<kbd>\</kbd></td><td>—</td></tr>
+    <tr><td>エラーの一覧</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>（問題パネル）</td><td>コンパイル エラーのダイアログ</td></tr>
+    <tr><td><b>関数の定義へ飛ぶ</b></td><td>関数名の上で <kbd>F12</kbd>（<kbd>Ctrl</kbd>+クリック）。戻るは <kbd>Alt</kbd>+<kbd>←</kbd></td><td>定義（Shift+F2）</td></tr>
+    <tr><td><b>関数がどこで使われているか</b></td><td>関数名の上で <kbd>Shift</kbd>+<kbd>F12</kbd></td><td>—</td></tr>
+    <tr><td>ファイル内の関数の一覧</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>、または「アウトライン」</td><td>プロシージャ ボックス</td></tr>
+    <tr><td>全モジュールの関数を名前で探す</td><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>オブジェクト ブラウザー</td></tr>
+    <tr><td>ひな形を入れる</td><td><code>func</code>・<code>errh</code>・<code>rs</code> などを入力して <kbd>Tab</kbd></td><td>—</td></tr>
+    <tr><td>何でも探して実行</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>（コマンド パレット）→「Access:」</td><td>メニュー</td></tr>
+    <tr><td>変更前と比べる</td><td>［ソース管理］で変更されたファイルをクリック（git 使用時）</td><td>—</td></tr>
+  </table></div>
+  <div class="exercise"><b>演習 1</b>チュートリアルのサンプルで、<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> を使って <code>TaxIncluded</code> が使われている場所をすべて探してください。
+    <details class="answer"><summary>解答例</summary><p><code>modTax.bas</code>（定義）と <code>Test_Tax.bas</code>（テスト）が見つかります。フォームやレポートの中（<code>forms/*.txt</code> の <code>CodeBehindForm</code> 以降や、テキストボックスの <code>ControlSource</code>）で使っていれば、それも見つかります。VBE の検索では見つけにくいフォームの式まで一度に探せるのがポイントです。</p></details></div>
+
+  <h3 id="b4">4. エラーと付き合う</h3>
+  <div class="table-wrap"><table>
+    <tr><th>種類</th><th>いつ見つかる</th><th>原因の例</th><th>表示</th></tr>
+    <tr><td>コンパイル エラー</td><td>反映したとき</td><td>変数名の打ち間違い、<code>End If</code> の書き忘れ、存在しない関数の呼び出し</td><td>赤い波線＋エラーの内容と行番号</td></tr>
+    <tr><td>実行時エラー</td><td>実行したとき</td><td>0 で割った、型が合わない、Null を数値として使った</td><td>エラーが起きた行に赤い波線＋エラー番号</td></tr>
+    <tr><td>コードチェック</td><td>保存したとき（Access 不要）</td><td>Shift-JIS で使えない文字、Option Explicit の書き忘れ、帳票のはみ出し</td><td>赤（エラー）／黄（警告）の波線</td></tr>
+  </table></div>
+  <ul>
+    <li>エラーの一覧は <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>（問題パネル）。行をクリックするとその場所へ移動します</li>
+    <li>実行中の <b>MsgBox は自動で答え</b>、内容は結果に記録されます（OK だけなら OK。「削除しますか？」のような確認には、安全側の「キャンセル」／「いいえ」）</li>
+    <li><b>InputBox やモーダルフォーム</b>は自動で答えられないため、時間切れになって Access が終了します（上級「<a href="#a4">直しやすい VBA の設計</a>」で対策を学びます）</li>
+    <li>絵文字や一部の記号は Access に入れると <code>?</code> に化けます（コードチェックで赤い波線）</li>
+  </ul>
+  <div class="exercise"><b>演習 2</b>次の表示が出ました。それぞれ、何をすればよいですか？
+    <ol>
+      <li>「コンパイル エラー: Sub または Function が定義されていません。（modOrder.bas の 12 行目）」</li>
+      <li>「実行時エラー '94': Null の使い方が不正です。」</li>
+      <li>「データベースが Access などで開かれています。」</li>
+    </ol>
+    <details class="answer"><summary>解答例</summary><ol>
+      <li>12 行目で呼んでいる関数名が間違っているか、その関数がまだ反映されていない。綴りを確認し、関数のあるモジュールも反映する。</li>
+      <li>Null の値を文字列や数値の変数に入れている。<code>Nz(値, 0)</code> などで Null のときの値を決める。</li>
+      <li>Access の画面で同じ DB を開いている。閉じてから、もう一度実行する。</li>
+    </ol></details></div>
+
+  <h3 id="b5">5. 自分のデータベースで始める</h3>
+  <p>練習が終わったら、いよいよ自分の仕事のデータベースです。最初に次の順で準備すると安全です。</p>
+  <ol class="steps">
+    <li><b>データベースをコピーしておく</b>念のため、手作業でもコピーを取っておきます（Access VSC の自動バックアップとは別に）。</li>
+    <li><b>専用のフォルダに入れる</b>例：<code>C:\work\在庫管理\在庫管理.accdb</code>。そのフォルダを VS Code で開きます（デスクトップ全体などを開かない）。</li>
+    <li><b>Access を閉じて「① Access から取り出す」</b>オブジェクトが多いと数分かかることがあります。</li>
+    <li><b>気になる点を確認</b>
+      <ul>
+        <li><b>AutoExec マクロやスタートアップ フォーム</b>があると、操作のたびに動きます。何か処理をしている場合は注意</li>
+        <li><b>リンクテーブル</b>の先（バックエンド）は本物のデータです。テストや SQL で書き換えないように</li>
+        <li><b>ODBC など外部接続</b>のパスワードは、取り出したファイルでは <code>***</code> に伏せられます</li>
+      </ul></li>
+    <li><b>git を始める</b>「テスト・品質」→「テスト・CI/CD を準備」で git も始められます（中級「<a href="#i3">git で履歴を残す</a>」）。</li>
+  </ol>
+  <div class="callout warn"><b>やってはいけないこと</b>
+    <ul>
+      <li>フォーム・レポートの <code>PrtMip</code> や <code>PrtDevMode</code>、<code>0x...</code> が並ぶ行を編集する（壊れます）</li>
+      <li>同じ DB を Access で開いたまま、VS Code から反映する</li>
+      <li>テーブル定義（<code>.json</code>）を編集して変わったつもりになる</li>
+    </ul></div>
+  <div class="quiz">
+    <details><summary>Q. 取り出したら <code>?</code> が混ざった行がありました。なぜ？</summary><p>Access の中で既に Shift-JIS で表せない文字が化けていた可能性があります。Access VSC が化けさせたわけではありません。正しい文字に直して反映してください。</p></details>
+  </div>
+</section>
+
+<!-- ================================================================= -->
+<section id="intermediate">
+  <h2><span class="badge lv2">中級</span>思いどおりに直し、壊していないと言える</h2>
+  <div class="objectives">
+    <h4>中級の到達目標 <span class="pill" data-progress-label="i-">0 / 0</span></h4>
+    <label><input type="checkbox" data-key="i-1">twip とセクションを理解し、帳票のテキストを読んで位置・大きさを直せる</label>
+    <label><input type="checkbox" data-key="i-2">白紙ページが出る理由を説明でき、プレビューの問題表示から直し方を判断できる</label>
+    <label><input type="checkbox" data-key="i-3">AI に「目的・条件・確かめ方」をそろえて頼み、結果を差分とテストで確認できる</label>
+    <label><input type="checkbox" data-key="i-4">git でコミット・差分の確認・変更の取り消しができる</label>
+    <label><input type="checkbox" data-key="i-5">計算や判定のロジックにテストを書き、TestSetup / TestTeardown を使い分けられる</label>
+    <div class="progress" data-progress="i-"><div></div></div>
+  </div>
+
+  <h3 id="i1">1. 帳票レイアウトの考え方</h3>
+  <h4>帳票のテキストの読み方</h4>
+<pre><code>Begin Report
+    Width =8000                 ← 帳票全体の幅
+    Begin
+        Begin PageHeader        ← ページヘッダー（毎ページの上）
+            Height =1100        ← セクションの高さ
+            Begin
+                Begin Label     ← 項目 1 つ分（ここから End まで）
+                    Left =300   ← 左端からの位置
+                    Top =100    ← セクションの上端からの位置
+                    Width =4000
+                    Height =450
+                    Name ="lblTitle"
+                    Caption ="受注一覧"
+                    FontSize =14
+                End
+            End
+        End
+        Begin Section           ← 詳細（1 件ごとに繰り返す）
+            ...</code></pre>
+  <div class="concept">
+    <div><h4>twip（トゥイップ）</h4><p>長さの単位。<b>1 cm = 567 twip</b>、1 mm ≒ 57 twip。</p></div>
+    <div><h4>セクション</h4><p>ページヘッダー（毎ページ上）・詳細（1 件ごと）・ページフッター（毎ページ下）など。Top はセクション内の位置。</p></div>
+    <div><h4>帳票の幅</h4><p><code>Begin Report</code> 直下の Width。項目がはみ出すと Access が自動で広げる。</p></div>
+    <div><h4>印刷可能幅</h4><p>用紙の幅 −（左余白 + 右余白）。帳票の幅がこれを超えると<b>白紙ページ</b>が出る。</p></div>
+  </div>
+  <h4>白紙ページが出るしくみ</h4>
+  <p>A4 縦（幅 21 cm）で左右の余白が 10 mm なら、印刷可能幅は 19 cm（10,773 twip）。帳票の幅が 19 cm を少しでも超えると、はみ出した部分が次のページに印刷され、何も載っていない白紙のページが交互に出ます。プレビューの「印刷可能幅を超えています」はこのことです。</p>
+  <p>直し方は 3 通り：<b>項目を詰めて帳票の幅を縮める</b> ／ <b>余白を小さくする</b> ／ <b>用紙を横向きにする</b>（ページ設定）。</p>
+  <div class="callout tip"><b>おすすめの手順</b>プレビュー → 「レイアウト詳細」で各項目の位置（cm）を確認 → テキストを編集 → 反映 → プレビュー。帳票を直したら「帳票の見た目を比較」で、ほかの帳票まで変わっていないか確かめます。</div>
+  <div class="exercise"><b>演習 3</b>A4 縦、左右の余白 15 mm の帳票があります。帳票の幅が <code>Width =11000</code> のとき、白紙ページは出ますか？
+    <details class="answer"><summary>解答例</summary><p>印刷可能幅は 210 − 30 = 180 mm = 18 cm = 約 10,206 twip。11,000 はこれを超えるので<b>白紙ページが出ます</b>。約 800 twip（1.4 cm）詰めるか、余白を左右 8 mm 以下にするか、横向きにします。</p></details></div>
+
+  <h3 id="i2">2. AI と協働する</h3>
+  <p>AI は、ファイルを読んで直し、Access に反映し、エラーがあれば直し、実行・テスト・プレビューで確かめる、までを自分で繰り返せます。人の役割は<b>「何をしたいかを正しく伝える」</b>ことと<b>「結果を確かめて受け入れる」</b>ことです。</p>
+  <h4>頼み方の型：目的・条件・確かめ方</h4>
+  <div class="cmp">
+    <div class="bad"><h4>伝わりにくい</h4><p>請求書を直して</p><p>税計算がおかしい</p></div>
+    <div class="good"><h4>伝わりやすい</h4><p>rptInvoice の金額列が右端で切れている。金額列の幅を広げて、A4 縦に収まることをプレビューで確認して。</p><p>TaxIncluded(99) が 109 を返すが、仕様は 1 円未満切り捨てなので 108 が正しい。直して、テストを追加して通ることを確認して。</p></div>
+  </div>
+  <h4>任せてよいこと・人が判断すること</h4>
+  <div class="table-wrap"><table>
+    <tr><th>任せやすい</th><th>人が判断する</th></tr>
+    <tr><td>関数の追加・修正とテスト、帳票の位置・大きさの調整、クエリの作成、エラーの原因調査、コードの整理</td><td>仕様そのもの（何が正しいか）、本番データの更新、配布、帳票の見た目の基準の更新、セキュリティに関わること</td></tr>
+  </table></div>
+  <h4>結果の確かめ方</h4>
+  <ol>
+    <li><b>［ソース管理］で差分を見る</b>：変わったファイルと行を確認</li>
+    <li><b>テストを実行</b>：AI が書いたテスト＋既存のテストが通るか</li>
+    <li><b>帳票の見た目を比較</b>：意図しない帳票まで変わっていないか</li>
+    <li><b>Access で開いて触ってみる</b>：フォームの動きなど、テストしにくい所</li>
+  </ol>
+  <div class="callout tip"><b>プロジェクトのルールを AI に覚えさせる</b><code>CLAUDE.md</code>（Copilot なら <code>.github/copilot-instructions.md</code>）に、命名規則や「金額は Currency 型」などのルールを書き足すと、AI が毎回それに従います。</div>
+
+  <h3 id="i3">3. git で履歴を残す</h3>
+  <div class="concept">
+    <div><h4>コミット</h4><p>「ここまで」の区切りで変更を記録すること。メッセージを付ける。</p></div>
+    <div><h4>差分</h4><p>前回のコミットから何が変わったか。［ソース管理］でファイルをクリック。</p></div>
+    <div><h4>取り消し</h4><p>ファイルの変更を最後のコミットの状態に戻す（［変更を破棄］）。</p></div>
+    <div><h4>履歴</h4><p>過去のコミットの一覧。いつ・誰が・何を変えたか。</p></div>
+  </div>
+  <h4>Access 開発での使い方</h4>
+  <ul>
+    <li><b>コミットするもの</b>：ソースフォルダ（<code>*.accdb.src</code>）と <code>.accdb</code>。<code>.accessvsc</code>（作業用）はコミットしない（自動で除外設定されます）</li>
+    <li><b>コミットの単位</b>：「税計算を直した」「請求書の列を広げた」のように、1 つの目的ごと</li>
+    <li><b>変更を取り消したい</b>：［ソース管理］でファイルを右クリック →［変更を破棄］→ <b>反映</b>（ファイルを戻しただけでは Access は戻りません）</li>
+    <li><b>コミット前のチェック</b>：テスト・CI/CD の準備をすると、コミットのたびにコードチェックが自動で走り、エラーがあると止めてくれます</li>
+  </ul>
+  <div class="exercise"><b>演習 4</b>AI に頼んだ修正が気に入りません。AI が触る前の状態に戻すには？（AI に頼む前にコミットしてあるとします）
+    <details class="answer"><summary>解答例</summary><p>［ソース管理］で変更されたファイルをすべて選んで［変更を破棄］→「③ Access へ反映する」。新しく作られたファイルは削除し、反映時に「Access からも削除する」を選びます。<b>AI に頼む前にコミットしておく</b>と、こうして簡単に戻せます。</p></details></div>
+
+  <h3 id="i4">4. テストの考え方</h3>
+  <h4>何をテストするか</h4>
+  <ul>
+    <li><b>計算</b>（税・割引・合計・日付計算）、<b>判定</b>（入力チェック・区分の決定）、<b>文字列の加工</b>（コード生成・書式）</li>
+    <li><b>境目</b>：0、負の数、空文字、Null、最大値、月末・うるう年</li>
+    <li><b>直したバグ</b>：バグを直す前に「そのバグで失敗するテスト」を書くと、二度と同じバグが出ない</li>
+  </ul>
+  <h4>テストしやすくするコツ</h4>
+  <p>フォームのボタンの中に計算を直接書くと、テストできません。<b>計算は標準モジュールの関数に切り出し</b>、フォームはそれを呼ぶだけにします（上級「<a href="#a4">直しやすい VBA の設計</a>」）。</p>
+  <h4>データを使うテスト</h4>
+<pre><code>Public Sub TestSetup()          ' 各テストの前に呼ばれる
+    CurrentDb.Execute "DELETE FROM Orders", dbFailOnError
+    CurrentDb.Execute "INSERT INTO Orders (OrderDate, CustomerID, ProductID, Qty) VALUES (#2026/4/1#, 1, 1, 10)", dbFailOnError
+End Sub
+
+Public Sub Test_OrderTotal()
+    Assert.AreEqual 1500, DSum("Qty * 150", "Orders")
+End Sub</code></pre>
+  <p>テストは<b>データベースのコピー</b>で動くので、データを消しても元の DB は無事です。ただし<b>リンクテーブルの先（バックエンド）は本物</b>なので、データを書き換えるテストは、テスト用のバックエンドにリンクした状態で行います。</p>
+  <div class="exercise"><b>演習 5</b>次の関数のテストを、境目も含めて 3 つ以上書いてください。
+<pre><code>' 数量に応じた割引率（10 個以上 5%、50 個以上 10%）
+Public Function DiscountRate(ByVal qty As Long) As Double
+    If qty &gt;= 50 Then
+        DiscountRate = 0.1
+    ElseIf qty &gt;= 10 Then
+        DiscountRate = 0.05
+    Else
+        DiscountRate = 0
+    End If
+End Function</code></pre>
+    <details class="answer"><summary>解答例</summary>
+<pre><code>Public Sub Test_Discount_9()
+    Assert.AreClose 0, DiscountRate(9)
+End Sub
+Public Sub Test_Discount_10()          ' 境目
+    Assert.AreClose 0.05, DiscountRate(10)
+End Sub
+Public Sub Test_Discount_49()
+    Assert.AreClose 0.05, DiscountRate(49)
+End Sub
+Public Sub Test_Discount_50()          ' 境目
+    Assert.AreClose 0.1, DiscountRate(50)
+End Sub</code></pre>
+      <p>小数の比較は <code>AreClose</code> を使うと、計算誤差で失敗しません。</p></details></div>
+  <div class="quiz">
+    <details><summary>Q. テストが全部 ✔ なら、バグはないと言えますか？</summary><p>言えません。「テストで確かめたことは正しい」と言えるだけです。大事な計算や過去にバグが出た所から、少しずつテストを増やしていきます。</p></details>
+  </div>
+</section>
+
+<!-- ================================================================= -->
+<section id="advanced">
+  <h2><span class="badge lv3">上級</span>チームで安心して開発・運用する</h2>
+  <div class="objectives">
+    <h4>上級の到達目標 <span class="pill" data-progress-label="a-">0 / 0</span></h4>
+    <label><input type="checkbox" data-key="a-1">保存時・コミット時・push 時のチェックの役割分担を説明し、チームのルールにできる</label>
+    <label><input type="checkbox" data-key="a-2">Access の入った PC をセルフホストランナーにして、CI のテストを動かせる</label>
+    <label><input type="checkbox" data-key="a-3">CI の失敗を、注釈・概要・成果物から読み解いて直せる</label>
+    <label><input type="checkbox" data-key="a-4">.accde のリリースを作って配布し、問題があれば前の版に戻せる</label>
+    <label><input type="checkbox" data-key="a-5">画面・ロジック・データを分け、テストしやすく自動化しやすい VBA を書ける</label>
+    <div class="progress" data-progress="a-"><div></div></div>
+  </div>
+
+  <h3 id="a1">1. 品質を仕組みにする</h3>
+  <p>「気をつける」ではなく「仕組みで防ぐ」ために、チェックを何段階かに分けます。</p>
+  <div class="table-wrap"><table>
+    <tr><th>いつ</th><th>何が動く</th><th>見つけるもの</th><th>速さ</th></tr>
+    <tr><td>保存したとき</td><td>コードチェック</td><td>使えない文字、Option Explicit、Stop、帳票のはみ出し</td><td>数秒</td></tr>
+    <tr><td>反映したとき</td><td>コンパイル</td><td>VBA の文法・参照の間違い</td><td>10 秒前後</td></tr>
+    <tr><td>コミットするとき</td><td>コードチェック（コミット前フック）</td><td>エラーのある状態での記録を防ぐ</td><td>数秒</td></tr>
+    <tr><td>GitHub に送ったとき</td><td>CI：取り込み・コンパイル・テスト・帳票の見た目の比較</td><td>壊れた状態がチームに広がるのを防ぐ</td><td>数分</td></tr>
+  </table></div>
+  <h4>チームのルール例</h4>
+  <ul>
+    <li>全モジュールに <code>Option Explicit</code>（コードチェックが警告）</li>
+    <li>計算・判定は標準モジュールの関数にし、テストを付ける</li>
+    <li>帳票の基準画像の更新は、見た目の変更が意図どおりかを別の人が確認してから</li>
+    <li>CI が ✘ のまま main に入れない（GitHub のブランチ保護で「CI 成功を必須」にできる）</li>
+  </ul>
+  <div class="callout note"><b>日付を印刷する帳票</b>印刷日を表示する帳票は、比較のたびに少しずつ変わります。CI の比較では <code>-Threshold 0.1</code>（変化したピクセルが 0.1% 以下なら同じとみなす）を使います。</div>
+
+  <h3 id="a2">2. CI（自動チェック）</h3>
+  <p>「テスト・CI/CD を準備」で作られる <code>.github/workflows/access-ci.yml</code> は 2 つのジョブからなります。</p>
+  <div class="table-wrap"><table>
+    <tr><th>ジョブ</th><th>動く場所</th><th>内容</th></tr>
+    <tr><td>lint</td><td>GitHub のクラウド（設定不要）</td><td>コードチェック</td></tr>
+    <tr><td>test</td><td>Access の入った PC（セルフホストランナー）</td><td>ソースをすべて取り込み → コンパイル → テスト → 帳票の見た目の比較 → 結果を成果物に保存</td></tr>
+  </table></div>
+  <h4>セルフホストランナーの用意</h4>
+  <ol class="steps">
+    <li><b>専用の Windows PC（または仮想マシン）を用意</b>Access をインストールし、ライセンスを確認。人が普段使う PC とは分けるのがおすすめ。</li>
+    <li><b>リポジトリ →［Settings］→［Actions］→［Runners］→［New self-hosted runner］</b>表示される手順で登録し、ラベル <code>access</code> を付ける。</li>
+    <li><b>ログオンしたユーザーとして <code>run.cmd</code> を起動しておく</b>サービスとして動かすと、Office の自動操作が正しく動きません（自動ログオン＋スタートアップに登録するなど）。</li>
+  </ol>
+  <h4>失敗したときの読み方</h4>
+  <ul>
+    <li><b>注釈</b>：プルリクエストの「Files changed」で、エラーの行に直接表示されます</li>
+    <li><b>概要</b>：ジョブの Summary に、失敗したテストと帳票の一覧</li>
+    <li><b>成果物</b>：<code>access-test-results</code> に JUnit の結果と帳票の差分画像（違う所が赤）</li>
+  </ul>
+  <div class="quiz">
+    <details><summary>Q. 手元ではテストが通るのに、CI では失敗します。何を疑いますか？</summary><p>(1) 未反映・未コミットのファイルがないか（CI はコミットされた .accdb にソースを取り込みます）。(2) .accdb をコミットし忘れていないか。(3) データに依存するテストが、手元の DB にしかないデータを前提にしていないか（TestSetup でデータを用意する）。</p></details>
+  </div>
+
+  <h3 id="a3">3. 配布と運用</h3>
+  <h4>フロントエンドとバックエンド</h4>
+  <p>画面・クエリ・VBA の入った <b>フロントエンド</b> と、テーブル（データ）だけの <b>バックエンド</b> に分けておくと、データに触れずにプログラムだけ差し替えられます。Access VSC の配布は、この形を前提にしています。</p>
+  <h4>リリースの流れ</h4>
+  <div class="path"><span>配布の設定（1 回）</span><i>→</i><span>リリースを作成</span><i>→</i><span>配布する</span><i>→</i><span>利用者は起動するだけ</span></div>
+  <ul>
+    <li><b>リリースを作成</b>：DB をコピー → 版番号（<code>AppVersion</code>）を書き込み → リンクテーブルを本番のバックエンドに張り替え → コンパイル → <code>.accde</code></li>
+    <li><b>配布する</b>：共有フォルダの <code>app\</code> を差し替え、<code>releases\&lt;版&gt;\</code> に保管、<code>version.json</code> を更新</li>
+    <li><b>利用者</b>：共有フォルダの <code>Start-&lt;アプリ名&gt;.cmd</code> から起動すると、新しい版があれば自分の PC にコピーしてから開く</li>
+    <li><b>戻す</b>：「配布する」で <code>dist</code> の前の版を選んで配り直す</li>
+  </ul>
+  <h4>運用のコツ</h4>
+  <ul>
+    <li>アプリの画面のどこかに版番号を表示する：<code>CurrentDb.Properties("AppVersion")</code>。問い合わせのときに「どの版か」がすぐわかる</li>
+    <li>タグ（<code>v1.2.0</code>）を付けて push すると、取り込み → テスト → リリース → 配布までを CI で自動化できる（<code>access-release.yml</code>）</li>
+    <li><code>.accde</code> は作った Access と同じビット数（32 / 64 bit）でしか動かない。利用者の Office に合わせる</li>
+    <li>セキュリティの警告が出る場合は、管理者に <code>%LOCALAPPDATA%\AccessApps</code> を「信頼できる場所」に登録してもらう（グループポリシーなど）</li>
+  </ul>
+
+  <h3 id="a4">4. 直しやすい VBA の設計</h3>
+  <p>テストしやすく、AI にも任せやすく、自動化で止まらない VBA にするための考え方です。</p>
+  <h4>画面・ロジック・データを分ける</h4>
+  <div class="cmp">
+    <div class="bad"><h4>分かれていない</h4>
+<pre><code>' フォームのボタンの中に全部
+Private Sub cmdCalc_Click()
+    Dim total As Currency
+    total = Me.txtPrice * Me.txtQty
+    If Me.txtQty &gt;= 10 Then total = total * 0.95
+    Me.txtTotal = Int(total * 1.1)
+    MsgBox "計算しました"
+End Sub</code></pre></div>
+    <div class="good"><h4>分かれている</h4>
+<pre><code>' modPrice.bas（テストできる）
+Public Function OrderTotal(ByVal price As Currency, _
+                           ByVal qty As Long) As Currency
+    Dim total As Currency
+    total = price * qty * (1 - DiscountRate(qty))
+    OrderTotal = TaxIncluded(total)
+End Function
+
+' フォームは呼ぶだけ
+Private Sub cmdCalc_Click()
+    Me.txtTotal = OrderTotal(Me.txtPrice, Me.txtQty)
+End Sub</code></pre></div>
+  </div>
+  <h4>そのほかのコツ</h4>
+  <ul>
+    <li><b>ロジックの中で MsgBox・InputBox を使わない</b>：画面側で表示し、関数は値を返すだけにする（自動実行で止まらない・テストできる）</li>
+    <li><b>税率などの決まりごとは定数か設定テーブルに</b>：<code>Public Const TAX_RATE As Double = 0.1</code></li>
+    <li><b>エラー処理の型をそろえる</b>：画面側で <code>On Error GoTo</code> して利用者向けのメッセージ、ロジック側はエラーをそのまま上げる</li>
+    <li><b>Null に備える</b>：フォームの値やテーブルの値は <code>Nz()</code> で受ける</li>
+    <li><b>小さな関数</b>：1 つの関数は 1 つの仕事。名前で何をするかわかるように</li>
+  </ul>
+  <div class="exercise"><b>演習 6（総仕上げ）</b>自分のデータベースから、フォームのボタンの中で計算している処理を 1 つ選び、標準モジュールの関数に切り出してテストを書いてください。AI に頼んでも構いません（「cmdCalc_Click の計算を modPrice の関数に切り出して、テストも書いて、フォームの動きが変わらないようにして」）。</div>
+</section>
+
+<section id="graduate">
+  <h2>修了チェック</h2>
+  <p>各レベルの到達目標にすべてチェックが付いたら修了です。</p>
+  <div class="objectives">
+    <h4>全体の進み具合 <span class="pill" data-progress-label="">0 / 0</span></h4>
+    <div class="progress" data-progress=""><div></div></div>
+  </div>
+  <p>わからないことは<a href="reference.html">リファレンス</a>で調べられます。</p>
+  <div class="next"><a href="tutorial.html">← チュートリアル</a><a href="reference.html">リファレンスへ →</a></div>
+</section>
+</main>
+</div>
+<a class="back" href="#">▲ 先頭へ</a>
+<script src="assets/docs.js"></script>
+</body>
+</html>

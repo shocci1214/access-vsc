@@ -1,0 +1,95 @@
+{
+  "Public Function": {
+    "prefix": ["func", "function"],
+    "body": ["' ${3:説明}", "Public Function ${1:Name}(${2}) As ${4:Variant}", "    $0", "End Function"],
+    "description": "Public Function（説明コメント付き）"
+  },
+  "Public Sub": {
+    "prefix": ["sub"],
+    "body": ["' ${3:説明}", "Public Sub ${1:Name}(${2})", "    $0", "End Sub"],
+    "description": "Public Sub（説明コメント付き）"
+  },
+  "Private Sub": {
+    "prefix": ["psub"],
+    "body": ["Private Sub ${1:Name}(${2})", "    $0", "End Sub"],
+    "description": "Private Sub"
+  },
+  "Property Get/Let": {
+    "prefix": ["prop"],
+    "body": [
+      "Private m_${1:Value} As ${2:String}",
+      "",
+      "Public Property Get ${1:Value}() As ${2:String}",
+      "    ${1:Value} = m_${1:Value}",
+      "End Property",
+      "",
+      "Public Property Let ${1:Value}(ByVal v As ${2:String})",
+      "    m_${1:Value} = v",
+      "End Property"
+    ],
+    "description": "プロパティ（Get / Let）"
+  },
+  "If": { "prefix": ["if"], "body": ["If ${1:条件} Then", "    $0", "End If"], "description": "If 文" },
+  "If Else": { "prefix": ["ife"], "body": ["If ${1:条件} Then", "    $2", "Else", "    $0", "End If"], "description": "If ～ Else" },
+  "For": { "prefix": ["for"], "body": ["Dim ${1:i} As Long", "For ${1:i} = ${2:1} To ${3:10}", "    $0", "Next ${1:i}"], "description": "For ～ Next" },
+  "For Each": { "prefix": ["foreach"], "body": ["Dim ${1:item} As ${2:Variant}", "For Each ${1:item} In ${3:collection}", "    $0", "Next ${1:item}"], "description": "For Each ～ Next" },
+  "Do While": { "prefix": ["dowhile"], "body": ["Do While ${1:条件}", "    $0", "Loop"], "description": "Do While ～ Loop" },
+  "Select Case": { "prefix": ["select"], "body": ["Select Case ${1:値}", "    Case ${2:1}", "        $0", "    Case Else", "        ", "End Select"], "description": "Select Case" },
+  "With": { "prefix": ["with"], "body": ["With ${1:object}", "    $0", "End With"], "description": "With ～ End With" },
+  "Error handler (Sub)": {
+    "prefix": ["errh", "onerror"],
+    "body": [
+      "Public Sub ${1:Name}()",
+      "    On Error GoTo ErrHandler",
+      "    $0",
+      "",
+      "ExitProc:",
+      "    Exit Sub",
+      "",
+      "ErrHandler:",
+      "    MsgBox \"エラー \" & Err.Number & \": \" & Err.Description, vbExclamation, \"${1:Name}\"",
+      "    Resume ExitProc",
+      "End Sub"
+    ],
+    "description": "エラー処理付きの Sub（画面側で使う）"
+  },
+  "DAO Recordset loop": {
+    "prefix": ["rs", "recordset"],
+    "body": [
+      "Dim rs As DAO.Recordset",
+      "Set rs = CurrentDb.OpenRecordset(\"${1:SELECT * FROM テーブル}\", dbOpenSnapshot)",
+      "Do Until rs.EOF",
+      "    $0",
+      "    rs.MoveNext",
+      "Loop",
+      "rs.Close",
+      "Set rs = Nothing"
+    ],
+    "description": "DAO のレコードセットを 1 件ずつ読む"
+  },
+  "Execute SQL": {
+    "prefix": ["exec", "execute"],
+    "body": ["CurrentDb.Execute \"${1:UPDATE テーブル SET 項目 = 値 WHERE 条件}\", dbFailOnError"],
+    "description": "更新系 SQL を実行（失敗したらエラー）"
+  },
+  "DLookup": {
+    "prefix": ["dlookup"],
+    "body": ["Nz(DLookup(\"${1:項目}\", \"${2:テーブル}\", \"${3:条件}\"), ${4:0})"],
+    "description": "DLookup（見つからないときの値つき）"
+  },
+  "Test (Access VSC)": {
+    "prefix": ["test"],
+    "body": ["Public Sub Test_${1:Name}()", "    Assert.AreEqual ${2:期待値}, ${3:実際の値}", "End Sub"],
+    "description": "Access VSC のテスト（Test_ で始まる引数なしの Public Sub）"
+  },
+  "Test setup/teardown (Access VSC)": {
+    "prefix": ["testsetup"],
+    "body": ["Public Sub TestSetup()", "    ' 各テストの前に呼ばれる", "    $0", "End Sub", "", "Public Sub TestTeardown()", "    ' 各テストの後に呼ばれる", "End Sub"],
+    "description": "テストの準備と後片付け"
+  },
+  "Module header": {
+    "prefix": ["module", "header"],
+    "body": ["Option Compare Database", "Option Explicit", "", "$0"],
+    "description": "モジュールの先頭（Option Explicit）"
+  }
+}
