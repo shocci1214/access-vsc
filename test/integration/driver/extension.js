@@ -106,6 +106,33 @@ async function run(root, out) {
   check('lint on save: implicit-variant / unused / return', codes.includes('implicit-variant') && codes.includes('unused-variable') && codes.includes('implicit-variant-return'), codes);
   fs.unlinkSync(lintFile);
 
+  // 整形（インデント）
+  const fmtFile = src('modules', 'modFmtIt.bas');
+  fs.writeFileSync(fmtFile, 'Option Explicit\r\n\r\nPublic Sub Fmt(ByVal n As Long)\r\nIf n > 0 Then\r\nDebug.Print n\r\nEnd If\r\nEnd Sub\r\n');
+  const fdoc = await vscode.workspace.openTextDocument(fmtFile);
+  const fedits = (await exec('vscode.executeFormatDocumentProvider', fdoc.uri, { tabSize: 4, insertSpaces: true })) || [];
+  const fws = new vscode.WorkspaceEdit();
+  for (const e of fedits) fws.replace(fdoc.uri, e.range, e.newText);
+  await vscode.workspace.applyEdit(fws);
+  check('format: indents blocks', /\r?\n    If n > 0 Then\r?\n        Debug\.Print n\r?\n    End If\r?\n/.test(fdoc.getText()), fdoc.getText());
+
+  // 名前の変更：ローカル変数は OK、Public は拒否、Private はモジュール内だけ・メンバー（.subtotal）は変えない
+  const renFile = src('modules', 'modRenameIt.bas');
+  fs.writeFileSync(renFile, 'Option Explicit\r\n\r\nPrivate count As Long\r\n\r\nPublic Function Calc(ByVal price As Currency) As Currency\r\n    Dim subtotal As Currency\r\n    subtotal = price * 2 \' subtotal\r\n    count = count + 1\r\n    Calc = subtotal + rs.subtotal\r\nEnd Function\r\n');
+  const rdoc = await vscode.workspace.openTextDocument(renFile);
+  const rpos = rdoc.positionAt(rdoc.getText().indexOf('subtotal = price') + 2);
+  const redit = await exec('vscode.executeDocumentRenameProvider', rdoc.uri, rpos, 'net');
+  const rcount = redit ? redit.entries().reduce((n, [, es]) => n + es.length, 0) : 0;
+  check('rename: local variable (skips comment and .member)', rcount === 3, rcount);
+  let pubErr = '';
+  try { await exec('vscode.executeDocumentRenameProvider', rdoc.uri, rdoc.positionAt(rdoc.getText().indexOf('Calc(') + 1), 'Calc2'); } catch (e) { pubErr = String(e && e.message || e); }
+  check('rename: Public is refused', /Private/.test(pubErr), pubErr);
+  const pedit = await exec('vscode.executeDocumentRenameProvider', rdoc.uri, rdoc.positionAt(rdoc.getText().indexOf('count = count') + 1), 'mCount');
+  const pcount = pedit ? pedit.entries().reduce((n, [, es]) => n + es.length, 0) : 0;
+  check('rename: Private module variable', pcount === 3, pcount);
+  fs.unlinkSync(fmtFile);
+  fs.unlinkSync(renFile);
+
   fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify(results, null, 2));
 }
 

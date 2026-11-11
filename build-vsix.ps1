@@ -15,7 +15,7 @@ $pkg = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'package.json') | Conver
 $out = Join-Path $root ("{0}-{1}.vsix" -f $pkg.name, $pkg.version)
 
 # パッケージに入れるファイル
-$include = @('package.json', 'extension.js', 'vba-language.js', 'language-configuration.json', 'README.md', 'LICENSE') +
+$include = @('package.json', 'extension.js', 'vba-language.js', 'vba-format.js', 'language-configuration.json', 'README.md', 'LICENSE') +
     @(Get-ChildItem (Join-Path $root 'snippets') -File | ForEach-Object { "snippets/$($_.Name)" }) +
     @(Get-ChildItem (Join-Path $root 'syntaxes') -File | ForEach-Object { "syntaxes/$($_.Name)" }) +
     @(Get-ChildItem (Join-Path $root 'scripts') -File -Recurse | ForEach-Object { $_.FullName.Substring($root.Length + 1).Replace('\', '/') }) +

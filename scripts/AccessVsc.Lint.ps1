@@ -14,6 +14,8 @@
     implicit-variant-return (info) Function / Property Get の戻り値の型が書かれていない
     unused-variable    (warning) 手続きの中で宣言したのに使っていない変数
     broken-reference   (warning) VBA の参照設定が「参照不可」になっている（references.json）
+    block-structure    (warning) If / For / Do / With / Select などのブロックの対応が取れない（End If の書き忘れなど）
+    format             (info)    インデントが整っていない（access.ps1 format / エディタの Shift+Alt+F で直せる）
 #>
 
 $script:SectionTypes = @('Section', 'PageHeader', 'PageFooter', 'FormHeader', 'FormFooter', 'BreakHeader', 'BreakFooter')
@@ -214,6 +216,23 @@ function Test-ObjectLayoutText([string]$Rel, [string[]]$Lines, $Problems) {
     }
 }
 
+function Test-VbaFormat([string]$Rel, [string[]]$Lines, $Problems) {
+    # 整形の規則（AccessVsc.Format.ps1）と比べる
+    if (-not (Get-Command Format-VbaText -ErrorAction SilentlyContinue)) { return }
+    $new = Format-VbaText ($Lines -join "`n") $Rel
+    if ($null -eq $new) {
+        $Problems.Add((New-LintProblem $Rel 1 'warning' 'block-structure' 'If / For / Do / With / Select Case / Sub などのブロックの対応が取れません（End If・Next・Loop・End Sub などの書き忘れ）。コンパイルエラーになります。'))
+        return
+    }
+    $nl = $new -split "`n"
+    for ($i = 0; $i -lt [Math]::Min($nl.Count, $Lines.Count); $i++) {
+        if ($nl[$i] -cne $Lines[$i]) {
+            $Problems.Add((New-LintProblem $Rel ($i + 1) 'info' 'format' 'インデントが整っていません（ここから下）。整形（エディタの Shift+Alt+F、または access.ps1 format）で直せます。'))
+            return
+        }
+    }
+}
+
 function Invoke-SourceLint([string]$Src, [string[]]$Only) {
     $problems = New-Object System.Collections.Generic.List[object]
     $files = @(Get-SourceFiles $Src)
@@ -230,12 +249,13 @@ function Invoke-SourceLint([string]$Src, [string[]]$Only) {
                 $off = 0
                 while ($off -lt $lines.Count -and $lines[$off] -match '^(Attribute VB_|VERSION |BEGIN|\s+MultiUse|END$)') { $off++ }
                 Test-VbaCode $rel $lines $off $problems
+                Test-VbaFormat $rel $lines $problems
             }
             { $_ -in @('forms', 'reports') } {
                 Test-ShiftJis $rel $lines $problems
                 Test-ObjectLayoutText $rel $lines $problems
                 $cb = [Array]::FindIndex([string[]]$lines, [Predicate[string]] { param($l) $l.Trim() -match '^CodeBehind(Form|Report)$' })
-                if ($cb -ge 0) { Test-VbaCode $rel $lines ($cb + 1) $problems }
+                if ($cb -ge 0) { Test-VbaCode $rel $lines ($cb + 1) $problems; Test-VbaFormat $rel $lines $problems }
             }
             'macros' { Test-ShiftJis $rel $lines $problems }
             'queries' {

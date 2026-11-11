@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AccessVsc.Runner.ps1')
 
-$script:Version = '0.1.0'
+$script:Version = '0.6.0'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), $utf8)
 $stdout = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput(), $utf8)
@@ -110,6 +110,10 @@ $tools = @(
                 version = [ordered]@{ type = 'string'; description = 'Version, e.g. 1.2.0 (default: date and time).' }
             }) @() $false $false)
     (New-Tool 'access_lint' 'Lint source' 'Static checks of the source folder without Access: characters not representable in Shift-JIS, missing Option Explicit, leftover Stop, report/form controls overflowing width or section, empty SQL. Fast.' ([ordered]@{}) @() $true)
+    (New-Tool 'access_format' 'Format VBA' 'Fix indentation (4 spaces per block: Sub/Function, If, For, Do, While, With, Select Case, Type) and trailing spaces of VBA in modules/*.bas|cls and the code part of forms/reports .txt. Changes only whitespace; files whose blocks do not match (missing End If etc.) are left unchanged and listed in "skipped". Does not start Access. Run it after editing VBA and before access_import.' ([ordered]@{
+                files = [ordered]@{ type = 'array'; items = [ordered]@{ type = 'string' }; description = 'Only these files, relative to the source folder (e.g. "modules/modMain.bas"). Default: all.' }
+                check = [ordered]@{ type = 'boolean'; description = 'Only report which files are not formatted; do not write.' }
+            }) @() $false $false)
     (New-Tool 'access_setup_ci' 'Set up tests and CI' 'Add the Assert module and an example test module to the source folder, copy the tool scripts to tools/access-vsc, and create a GitHub Actions workflow (.github/workflows/access-ci.yml), a pre-commit lint hook and .gitattributes/.gitignore entries. Does not start Access.' ([ordered]@{
                 root    = [ordered]@{ type = 'string'; description = 'Repository root (default: git root of the database folder, or the database folder).' }
                 gitInit = [ordered]@{ type = 'boolean'; description = 'Run git init when the root is not a git repository.' }
@@ -119,7 +123,7 @@ $tools = @(
 
 $instructions = @'
 Access VSC lets you edit a Microsoft Access database as text files.
-Workflow: access_status -> edit files in the source folder -> access_import (imports changed files and compiles) -> fix compile errors at the returned file/fileLine -> access_run / access_sql to verify.
+Workflow: access_status -> edit files in the source folder -> access_format (fix VBA indentation) -> access_import (imports changed files and compiles) -> fix compile errors at the returned file/fileLine -> access_run / access_sql to verify.
 If objects were changed in the Access GUI, run access_export first (it refuses to overwrite unimported edits).
 tables/*.json and relationships.json are read-only snapshots; change schema with access_sql write=true (DDL) and then access_export kinds=["tables"].
 VBA modules are stored in Shift-JIS inside Access: avoid characters that Shift-JIS cannot represent (e.g. emoji).
@@ -160,6 +164,7 @@ function Invoke-Tool([string]$Name, $A) {
         }
         'access_test' { $cmd = 'test'; if ($A.filter) { $P.filter = @($A.filter) } }
         'access_lint' { $cmd = 'lint' }
+        'access_format' { $cmd = 'format'; if ($A.files) { $P.files = @($A.files) }; $P.check = [bool]$A.check }
         'access_report_snapshot' {
             $cmd = 'snapshot'
             if ($A.reports) { $P.reports = @($A.reports) }

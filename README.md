@@ -21,29 +21,46 @@ Microsoft Access の VBA・クエリ・フォーム・レポート・マクロ�
 
 ## できること
 
-| 機能 | 内容 |
-|---|---|
-| エクスポート | Access → ソースフォルダ。SaveAsText の Shift-JIS / UTF-16 を UTF-8 に変換。 |
-| インポート | 変更したファイルだけを Access に取り込み、自動でコンパイル。取り込み前に DB をバックアップ。 |
-| コンパイル | エラーの **モジュール・行・コード・エラーメッセージ** を返し、VS Code の「問題」パネルに表示。 |
-| VBA 実行 | `Application.Run` で Public Function/Sub を実行して戻り値を取得。`.bas` に「▶ Access で実行」が表示される。 |
-| 実行時エラー | エラーダイアログを自動で「デバッグ」→ 行番号を取得 →「リセット」。エラー行をエディタに表示。 |
-| ダイアログ対策 | MsgBox などは自動で答えて内容を記録（確認の質問には安全側の「キャンセル」／「いいえ」）。固まったらタイムアウトで **自分が起動した Access だけ** 強制終了。 |
-| SQL | SELECT の結果を表で表示（既定は読み取り専用）。 |
-| 帳票プレビュー | レポートを PDF / PNG にして表示。AI には画像のまま渡るので、見た目を確認しながら修正できる。 |
-| レイアウトチェック | コントロールの位置一覧と、**はみ出し・重なり・用紙に入らない** を自動検出。 |
-| ページ設定 | 用紙サイズ・向き・余白（バイナリで保存されていてテキストでは直せない部分）をコマンドで変更。 |
-| サイドバー | 左の Access アイコンから、マウス操作だけで取り出し・反映・実行・プレビューができる。使い方ガイド付き。 |
-| VBA の編集支援 | アウトライン、定義へ移動（F12）、参照の検索（Shift+F12）、ホバー、入力補完、引数のヒント、折りたたみ、スニペット。日本語の名前にも対応。 |
-| 参照設定の書き出し | VBA の参照設定を `references.json` に書き出し、「参照不可」をコードチェックで警告。 |
-| ユニットテスト | `Public Sub Test_*()` を **DB のコピー上で** 実行。VS Code の「テスト」ビューに ✔/✘、失敗箇所に移動。JUnit XML 出力。 |
-| コードチェック | Access 不要の lint（Shift-JIS にない文字・Option Explicit・Stop・帳票のはみ出し）。保存時に自動実行。 |
-| CI/CD の準備 | Assert モジュール・テスト例・GitHub Actions・コミット前チェック・.gitattributes をまとめて追加。 |
-| 帳票スナップショット | 全レポートを画像化して基準画像と比較。変わった所を赤で示す差分画像つき（見た目の回帰テスト）。 |
-| リリース・配布 | 版番号の書き込み → 本番バックエンドへの張り替え → **.accde** 作成 → 共有フォルダへ公開。利用者は起動用ランチャーで常に最新版。 |
-| AI 連携 | MCP サーバー（Copilot には自動登録、Claude Code には `.mcp.json` を生成）と JSON を返す CLI。 |
-| 安全装置 | 未インポートの編集があるとエクスポートを拒否 / DB を他で開いていると書き込みを拒否 / 同じ DB への同時操作を排他 |
+| 分類 | 機能 | 内容 |
+|---|---|---|
+| 同期 | エクスポート | Access → ソースフォルダ。SaveAsText の Shift-JIS / UTF-16 を UTF-8 に変換。 |
+| 同期 | インポート | 変更したファイルだけを Access に取り込み、自動でコンパイル。取り込み前に DB をバックアップ。 |
+| 同期 | 取り込みの確認 | 取り込んだオブジェクトと **Public な手続きが DB に本当にあるか** を Access 側から確認（`result.verify`）。一時的な失敗は 3 回まで自動で再試行。 |
+| 編集支援 | VBA の言語機能 | アウトライン、定義へ移動（F12）、参照の検索（Shift+F12）、ホバー、入力補完、引数のヒント、折りたたみ、スニペット。日本語の名前にも対応。 |
+| 編集支援 | 整形 | **Shift+Alt+F** でインデントと行末の空白を整える。ブロックの対応が取れないときは何も変えない（安全側）。CLI・MCP からも使える。 |
+| 編集支援 | 名前の変更 | **F2** で変更。誤変更を避けるため、ローカル変数・引数と、モジュール内の Private な名前だけが対象。 |
+| 診断 | コンパイル | エラーの **モジュール・行・コード・エラーメッセージ** を返し、VS Code の「問題」パネルに表示。 |
+| 診断 | コードチェック | Access 不要の lint（Shift-JIS にない文字・Option Explicit・Stop・型の書き忘れ・未使用の変数・ブロックの対応・インデント・帳票のはみ出し）。保存時に自動実行。 |
+| 実行 | VBA 実行 | `Application.Run` で Public Function/Sub を実行して戻り値を取得。`.bas` に「▶ Access で実行」が表示される。 |
+| 実行 | 実行時エラー | エラーダイアログを自動で「デバッグ」→ 行番号を取得 →「リセット」。エラー行をエディタに表示。 |
+| 実行 | ダイアログ対策 | MsgBox などは自動で答えて内容を記録（確認の質問には安全側の「キャンセル」／「いいえ」）。固まったらタイムアウトで **自分が起動した Access だけ** 強制終了。 |
+| 実行 | SQL | SELECT の結果を表で表示（既定は読み取り専用）。 |
+| 帳票 | プレビュー | レポートを PDF / PNG にして表示。AI には画像のまま渡るので、見た目を確認しながら修正できる。 |
+| 帳票 | レイアウトチェック | コントロールの位置一覧と、**はみ出し・重なり・用紙に入らない** を自動検出。 |
+| 帳票 | ページ設定 | 用紙サイズ・向き・余白（バイナリで保存されていてテキストでは直せない部分）をコマンドで変更。 |
+| 帳票 | スナップショット | 全レポートを画像化して基準画像と比較。変わった所を赤で示す差分画像つき（見た目の回帰テスト）。 |
+| テスト | ユニットテスト | `Public Sub Test_*()` を **DB のコピー上で** 実行。VS Code の「テスト」ビューに ✔/✘、失敗箇所に移動。JUnit XML 出力。 |
+| CI/CD | CI の準備 | Assert モジュール・テスト例・GitHub Actions・コミット前チェック・.gitattributes をまとめて追加。 |
+| CI/CD | リリース・配布 | 版番号の書き込み → 本番バックエンドへの張り替え → **.accde** 作成 → 共有フォルダへ公開。利用者は起動用ランチャーで常に最新版。 |
+| AI 連携 | MCP サーバー・CLI | Copilot には自動登録。Claude Code・Cursor・Gemini CLI 向けの設定と作業手順（完了の条件つき）を生成。JSON を返す CLI も。 |
+| 画面 | サイドバー | 左の Access アイコンから、マウス操作だけで取り出し・反映・実行・プレビューができる。使い方ガイド付き。 |
+| 安全 | 安全装置 | 未インポートの編集があるとエクスポートを拒否 / DB を他で開いていると書き込みを拒否 / 同じ DB への同時操作を排他 / 信頼されていないフォルダでは無効 |
 
+### 既存の拡張機能との違い
+
+VBA 向けの VS Code 拡張機能の多くは、色分け・スニペット・補完など **エディタの中** の支援が中心です。
+Access VSC は、**Access 本体との往復（取り込み・コンパイル・実行・テスト・帳票の確認・配布）まで** を VS Code と AI エージェントから行えることを目指しています。
+
+- `.accdb` の中身をテキストにして **Git で差分を見られる**（フォーム・レポート・クエリも）
+- AI が **自分で確かめられる**：コンパイルエラーの位置、実行結果、テスト結果、帳票の画像が返る
+- 「できました」の根拠を **ツールの結果で機械的に判断** できる（取り込みの確認・テスト・lint）
+
+### 苦手なこと
+
+- 解析は軽量（言語サーバーなし）。型の推論はしないため、`obj.` のあとの補完は自作モジュールのみ
+- `CallByName` や文字列で組み立てた手続き呼び出し、フォームの式（`=MyFunc()`）からの呼び出しは、参照の検索で見つからないことがある
+- 名前の変更は、安全のため Public な名前・イベント手続き（`_` を含む名前）には使えない
+- 操作のたびに Access を裏で起動するため、1 回 4〜10 秒程度かかる
 ## 必要なもの
 
 - Windows + Microsoft Access（Microsoft 365 / 2016 以降。Access Runtime では VBE が使えないため不可）
@@ -201,9 +218,13 @@ End Sub
 |---|---|
 | Claude Code | `.mcp.json`（MCP サーバー `access` の登録）、`CLAUDE.md`（作業手順） |
 | GitHub Copilot | `.github/copilot-instructions.md`（MCP サーバーはこの拡張機能が自動登録） |
-| その他 | `AGENTS.md` |
+| Cursor | `.cursor/mcp.json`（MCP サーバーの登録）、`.cursor/rules/access-vsc.mdc`（作業手順） |
+| Gemini CLI | `.gemini/settings.json`（MCP サーバーの登録）、`GEMINI.md`（作業手順） |
+| Codex・その他 | `AGENTS.md`（MCP サーバーは各ツールの設定で登録。CLI でも操作可） |
 
-Claude Code は次回起動時に MCP サーバー `access` の利用許可を求めてきます。
+エージェントを再起動すると MCP サーバー `access` が使えるようになります（Claude Code は利用許可を求めてきます）。
+
+作業手順には **完了の条件**（取り込み成功・確認 OK・テスト失敗 0・lint エラー 0・帳票の画像確認）が入っていて、AI はツールの結果を根拠に完了を報告します。
 
 ### MCP ツール
 
@@ -222,6 +243,7 @@ Claude Code は次回起動時に MCP サーバー `access` の利用許可を�
 | `access_report_pagesetup` | 用紙サイズ・向き・余白・レポート幅を変更（ソースも更新） |
 | `access_test` | VBA ユニットテスト（DB のコピーで実行、失敗理由・エラー行を返す） |
 | `access_lint` | コードチェック（Access 不要） |
+| `access_format` | VBA のインデントを整える（Access 不要。空白だけを変更） |
 | `access_setup_ci` | テスト・CI/CD の準備 |
 | `access_report_snapshot` | 帳票の見た目を基準画像と比較（差分画像を AI に返す） |
 | `access_build` | リリース用 .accde を作成（配布はしない） |
@@ -234,6 +256,7 @@ Claude Code は次回起動時に MCP サーバー `access` の利用許可を�
 $A = "$env:LOCALAPPDATA\access-vscode\bin\access.ps1"
 powershell -NoProfile -ExecutionPolicy Bypass -File $A status  -DbPath .\app.accdb
 powershell -NoProfile -ExecutionPolicy Bypass -File $A export  -DbPath .\app.accdb
+powershell -NoProfile -ExecutionPolicy Bypass -File $A format  -DbPath .\app.accdb -Text
 powershell -NoProfile -ExecutionPolicy Bypass -File $A import  -DbPath .\app.accdb
 powershell -NoProfile -ExecutionPolicy Bypass -File $A run     -DbPath .\app.accdb -Function Greet -ArgsJson "['世界']"
 powershell -NoProfile -ExecutionPolicy Bypass -File $A sql     -DbPath .\app.accdb -Sql "SELECT * FROM Customers"

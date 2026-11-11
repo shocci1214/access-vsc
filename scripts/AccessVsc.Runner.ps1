@@ -13,6 +13,7 @@
 $script:ScriptDir = $PSScriptRoot
 . (Join-Path $script:ScriptDir 'AccessVsc.Common.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Lint.ps1')
+. (Join-Path $script:ScriptDir 'AccessVsc.Format.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Setup.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Release.ps1')
 
@@ -345,7 +346,7 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
     $res = [ordered]@{ ok = $false; command = $Command }
     $mutex = $null
     try {
-        if ($Command -eq 'lint') {
+        if ($Command -in @('lint', 'format')) {
             # Access も DB ファイルも不要（CI のクラウド実行環境でも動く）
             if ($P.src -and -not $P.db) { $src = [System.IO.Path]::GetFullPath($(if ([System.IO.Path]::IsPathRooted($P.src)) { $P.src } else { Join-Path (Get-Location).Path $P.src })) }
             else {
@@ -356,6 +357,12 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
             }
             if (-not (Test-Path -LiteralPath $src)) { throw "Source folder not found: $src" }
             $res.source = $src
+            if ($Command -eq 'format') {
+                $res.result = Invoke-SourceFormat $src $(if ($P.files) { @($P.files) } else { $null }) ([bool]$P.check)
+                $res.ok = -not ($P.check -and $res.result.changed.Count)
+                if (-not $res.ok) { $res.error = "$($res.result.changed.Count) file(s) are not formatted" }
+                return $res
+            }
             $res.result = Invoke-SourceLint $src $(if ($P.files) { @($P.files) } else { $null })
             $res.ok = ($res.result.errorCount -eq 0)
             if (-not $res.ok) { $res.error = "$($res.result.errorCount) error(s), $($res.result.warningCount) warning(s)" }

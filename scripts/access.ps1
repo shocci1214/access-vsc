@@ -32,6 +32,7 @@
     test     Run VBA unit tests (Public Sub Test_* in modules/*.bas) on a copy of the database. Writes JUnit XML.
                -Filter "Test_Tax*"  -JUnit results.xml  -Summary $env:GITHUB_STEP_SUMMARY  -Text
     lint     Static checks of the source folder. Does not need Access or the .accdb (works on any Windows CI).
+    format   Fix VBA indentation and trailing spaces in the source folder (no Access). -Files ...  -Check (only list)
     setup-ci Add Assert module, example test, GitHub Actions workflow, pre-commit hook, .gitattributes (no Access)
                -Root <repo root>  -GitInit  -Force
     snapshot Render reports to PNG and compare with baselines in <src>/snapshots (visual regression).
@@ -44,7 +45,7 @@
 #>
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
+    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'format', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
     [string]$Command,
 
     [string]$DbPath,
@@ -85,6 +86,8 @@ param(
     [switch]$Text,
     [string]$Root,
     [switch]$GitInit,
+    # format
+    [switch]$Check,
     # snapshot
     [string[]]$Reports,
     [switch]$Update,
@@ -166,6 +169,7 @@ switch ($Command) {
         $P.locate = -not $NoLocate
     }
     'lint' { if ($Files) { $P.files = @(Split-List $Files) } }
+    'format' { if ($Files) { $P.files = @(Split-List $Files) }; $P.check = [bool]$Check }
     'setup-ci' { $P.root = $Root; $P.force = [bool]$Force; $P.gitInit = [bool]$GitInit }
     'snapshot' {
         if ($Reports) { $P.reports = @(Split-List $Reports) }
@@ -198,6 +202,15 @@ function Write-TextResult($res) {
             if ($gha) { Write-Output ("::{0} file={1},line={2},title={3}::{4}" -f $(switch ($p.severity) { 'error' { 'error' } 'info' { 'notice' } default { 'warning' } }), $file, $p.line, $p.rule, $p.message) }
         }
         Write-Output ("lint: {0} error(s), {1} warning(s), {2} info / {3} files" -f $res.result.errorCount, $res.result.warningCount, [int]$res.result.infoCount, $res.result.files)
+        return
+    }
+    if ($res.command -eq 'format' -and $res.result) {
+        foreach ($c in @($res.result.changed)) { Write-Output ("{0}: {1}" -f $(if ($res.result.check) { 'not formatted' } else { 'formatted' }), $c) }
+        foreach ($s in @($res.result.skipped)) {
+            Write-Output ("{0}: skipped - {1}" -f $s.file, $s.reason)
+            if ($gha) { Write-Output ("::warning file={0},title=format::{1}" -f $s.file, $s.reason) }
+        }
+        Write-Output ("format: {0} changed, {1} skipped / {2} files" -f @($res.result.changed).Count, @($res.result.skipped).Count, $res.result.files)
         return
     }
     if ($res.command -eq 'test' -and $res.result -and $res.result.summary) {

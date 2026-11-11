@@ -1,6 +1,6 @@
 // VBA の編集支援（言語サーバーを使わない軽量版）
 //   アウトライン / ワークスペースのシンボル / 定義へ移動（F12）/ 参照の検索（Shift+F12）
-//   ホバー / 入力補完 / 引数のヒント / 折りたたみ
+//   ホバー / 入力補完 / 引数のヒント / 折りたたみ / 整形（Shift+Alt+F）/ 名前の変更（F2・安全な範囲だけ）
 // 対象：modules/*.bas, *.cls と、forms・reports の .txt の CodeBehindForm 以降
 'use strict';
 
@@ -20,29 +20,8 @@ const MODULE_CONST = new RegExp(`^\\s*(?:(Public|Private|Global)\\s+)?Const\\s+(
 // ------------------------------------------------------------
 // 解析
 // ------------------------------------------------------------
-// 文字列リテラルとコメントを空白に置き換える（位置はそのまま）
-function stripLine(line) {
-  let out = '';
-  let inStr = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inStr) {
-      if (ch === '"') {
-        if (line[i + 1] === '"') { out += '  '; i++; continue; }
-        inStr = false;
-        out += '"';
-        continue;
-      }
-      out += ' ';
-      continue;
-    }
-    if (ch === '"') { inStr = true; out += '"'; continue; }
-    if (ch === "'") { out += ' '.repeat(line.length - i); break; }
-    out += ch;
-  }
-  if (/^\s*Rem\b/i.test(out)) return ' '.repeat(line.length);
-  return out;
-}
+// 文字列リテラルとコメントを空白に置き換える（位置はそのまま）。vba-format.js と共通
+const { stripLine, formatVba } = require('./vba-format');
 
 function codeStartLine(lines, file) {
   if (!/\.txt$/i.test(file)) return 0;
@@ -597,6 +576,100 @@ function register(context, getSrc) {
         }
       }
       return out;
+    },
+  }));
+
+  // 整形（Shift+Alt+F）。インデントと行末の空白だけ。ブロックの対応が取れないときは変えない
+  subs.push(vscode.languages.registerDocumentFormattingEditProvider(SELECTOR, {
+    provideDocumentFormattingEdits(doc, options) {
+      const indent = options.insertSpaces ? ' '.repeat(options.tabSize || 4) : '\t';
+      const text = doc.getText();
+      const out = formatVba(text, { indent, file: doc.fileName });
+      if (out === null) {
+        vscode.window.showWarningMessage('Access VSC: ブロックの対応が取れないため整形しませんでした（End If・Next・End Sub などの書き忘れがないか確認してください）。');
+        return [];
+      }
+      if (out === text) return [];
+      return [vscode.TextEdit.replace(new vscode.Range(doc.positionAt(0), doc.positionAt(text.length)), out)];
+    },
+  }));
+
+  // 名前の変更（F2）。誤変更を避けるため、ローカル変数・引数と、モジュール内の Private な名前だけ
+  const RESERVED = new Set(KEYWORDS.concat(['Call', 'Let', 'Get', 'Property', 'Sub', 'Function', 'End', 'Exit', 'GoTo', 'Me', 'Is', 'Like', 'Mod', 'Xor', 'Eqv', 'Imp', 'New', 'Type', 'Enum', 'Static', 'Global', 'Friend', 'Event', 'RaiseEvent', 'Declare', 'Option', 'Byte', 'Single', 'LongPtr', 'LongLong', 'Empty', 'Error', 'Print', 'Stop'])
+    .map((k) => k.toLowerCase()));
+
+  // 手続きの中で宣言されている名前（引数・Dim・Static・Const）
+  function localNames(doc, pr) {
+    const names = new Map();
+    for (const pa of splitParams(pr.params)) names.set(paramName(pa).toLowerCase(), paramName(pa));
+    for (let i = pr.startLine + 1; i < pr.endLine; i++) {
+      const s = stripLine(doc.lineAt(i).text);
+      const dm = /^\s*(?:Dim|Static|Const)\s+(.*)$/i.exec(s);
+      if (!dm) continue;
+      for (const part of splitParams(dm[1])) {
+        const n = new RegExp(`^(${ID})`).exec(part);
+        if (n) names.set(n[1].toLowerCase(), n[1]);
+      }
+    }
+    return names;
+  }
+
+  function renameTarget(doc, pos) {
+    const w = wordAt(doc, pos);
+    if (!w || !inCode(doc, pos)) throw new Error('ここは名前を変更できません。');
+    const before = doc.lineAt(pos.line).text.slice(0, w.range.start.character);
+    if (/[.!]\s*$/.test(before)) throw new Error('「.」や「!」の後ろの名前（オブジェクトのメンバー・フィールド・コントロール）は変更できません。');
+    const here = parsedDoc(doc);
+    if (pos.line < here.codeStart) throw new Error('フォーム・レポートのプロパティ部分では名前を変更できません。');
+    const key = w.word.toLowerCase();
+    const pr = procAtLine(here, pos.line);
+    if (pr && localNames(doc, pr).has(key)) return { w, scope: 'local', from: pr.startLine, to: pr.endLine, here, pr };
+    const isPrivate = here.decls.some((d) => d.name.toLowerCase() === key && d.scope === 'Private' && d.kind !== 'Type' && d.kind !== 'Enum')
+      || here.procs.some((p) => p.name.toLowerCase() === key && p.scope === 'Private' && !/^Declare/.test(p.kind));
+    if (!isPrivate) {
+      throw new Error('名前を変更できるのは、ローカル変数・引数と、モジュール内の Private な名前だけです（Public な名前は、他のモジュール・クエリ・フォームの式から使われている可能性があるため）。');
+    }
+    if (w.word.includes('_')) throw new Error('「_」を含む Private な手続きは、イベント（Click など）の可能性があるため変更できません。');
+    for (const p of here.procs) {
+      if (p.endLine > p.startLine && localNames(doc, p).has(key)) throw new Error(`手続き ${p.name} に同じ名前のローカル変数・引数があるため変更できません。`);
+    }
+    if (/\.txt$/i.test(doc.fileName)) {
+      const re = wordRe(w.word, 'i');
+      for (let i = 0; i < here.codeStart; i++) if (re.test(doc.lineAt(i).text)) throw new Error('フォーム・レポートのプロパティ（式）からも使われているため変更できません。');
+    }
+    return { w, scope: 'module', from: here.codeStart, to: doc.lineCount - 1, here };
+  }
+
+  subs.push(vscode.languages.registerRenameProvider(SELECTOR, {
+    prepareRename(doc, pos) {
+      return renameTarget(doc, pos).w.range;
+    },
+    provideRenameEdits(doc, pos, newName) {
+      const t = renameTarget(doc, pos);
+      const nn = newName.trim();
+      if (!new RegExp(`^${ID}$`).test(nn) || nn.length > 255) throw new Error(`「${newName}」は VBA の名前として使えません。`);
+      if (RESERVED.has(nn.toLowerCase())) throw new Error(`「${nn}」は VBA の予約語です。`);
+      const lower = nn.toLowerCase();
+      if (lower !== t.w.word.toLowerCase()) {
+        const taken = t.scope === 'local'
+          ? localNames(doc, t.pr).has(lower) || t.here.procs.some((p) => p.name.toLowerCase() === lower) || t.here.decls.some((d) => d.name.toLowerCase() === lower)
+          : t.here.procs.some((p) => p.name.toLowerCase() === lower || (p.endLine > p.startLine && localNames(doc, p).has(lower)))
+            || t.here.decls.some((d) => d.name.toLowerCase() === lower)
+            || findProcs(nn, doc.fileName).length > 0;
+        if (taken) throw new Error(`「${nn}」はすでに使われている名前です。`);
+      }
+      const edit = new vscode.WorkspaceEdit();
+      const re = wordRe(t.w.word, 'gi');
+      for (let i = t.from; i <= t.to; i++) {
+        const s = stripLine(doc.lineAt(i).text);
+        let m;
+        re.lastIndex = 0;
+        while ((m = re.exec(s))) {
+          if (/[.!]\s*$/.test(s.slice(0, m.index))) continue; // obj.Name / rs!Name は別物
+          edit.replace(doc.uri, new vscode.Range(i, m.index, i, m.index + t.w.word.length), nn);
+        }
+      }
+      return edit;
     },
   }));
 

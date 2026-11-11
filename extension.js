@@ -844,8 +844,8 @@ Access データベース \`${rel(db)}\` は \`${rel(src)}/\` にテキストと
 
 ### 手順
 1. \`access_status\` で同期状態を確認（Access を起動しないので速い）
-2. ソースファイルを編集（新しいファイルを置けば新しいオブジェクトになる）
-3. \`access_import\` で取り込み＋コンパイル。コンパイルエラーは \`file\` / \`fileLine\` / \`code\` が返るので、そこを直して再インポート
+2. ソースファイルを編集（新しいファイルを置けば新しいオブジェクトになる）。VBA を書いたら \`access_format\` でインデントを整える
+3. \`access_import\` で取り込み＋コンパイル。コンパイルエラーは \`file\` / \`fileLine\` / \`code\` が返るので、そこを直して再インポート。\`result.verify\` は取り込んだオブジェクトと Public な手続きが DB に本当にあるかの確認結果
 4. \`access_run\`（VBA の Public Function/Sub を実行）、\`access_sql\`（データ確認。既定は読み取り専用）、\`access_eval\` で動作確認
 5. ユーザーが Access 側で変更した場合は \`access_export\` で取り込む（未インポートの編集があると拒否される）
 6. テーブル定義の変更は \`access_sql\`（write=true で DDL）→ \`access_export\`（kinds=["tables"]）
@@ -866,6 +866,13 @@ Access データベース \`${rel(db)}\` は \`${rel(src)}/\` にテキストと
 - \`access_lint\` の警告（型の書き忘れ \`implicit-variant\`・使っていない変数 \`unused-variable\` など）は、触ったコードの分は直す
 - 帳票や、帳票が使うクエリ・コードを変えたら \`access_report_snapshot\` で見た目を基準画像と比べる。変化があれば差分画像を見てユーザーに報告し、**意図した変化だとユーザーが認めた場合だけ** update=true で基準を更新する
 
+### 完了の条件（すべて満たしてから「できました」と報告する）
+- \`access_import\` が \`ok: true\`（取り込みエラーなし・コンパイル成功・\`verify.missing\` が空）
+- \`access_test\` の失敗が 0 件、\`access_lint\` のエラーが 0 件
+- 帳票を変えたら \`access_report_preview\` の画像を見て確認し、\`issues\` が空
+- 報告には、実行したツールとその結果（テストの件数・失敗数など）を書く。ファイルの大きさや「保存できた」ことを完了の根拠にしない
+- 失敗したら原因を調べて直す。テストを書き換えて通すのではなく、コードを直す（仕様が変わった場合はユーザーに確認）
+
 ### リリース
 - \`access_build\` で .accde を作れる（版番号の書き込み・本番バックエンドへの張り替え込み）
 - **配布（deploy）はユーザーが明示的に頼んだときだけ**。配布は VS Code の「配布する」か CLI の \`deploy -Yes\` で行う
@@ -882,6 +889,7 @@ ${run} eval    -DbPath "${db}"${srcArg} -Expr "DCount('*','MyTable')"
 ${run} export  -DbPath "${db}"${srcArg}
 ${run} test    -DbPath "${db}"${srcArg} -Text                 # -Filter "Test_Tax*"
 ${run} lint    -DbPath "${db}"${srcArg} -Text
+${run} format  -DbPath "${db}"${srcArg} -Text                 # VBA のインデントを整える（-Check で確認だけ）
 ${run} layout  -DbPath "${db}"${srcArg} -Report rptSales
 ${run} preview -DbPath "${db}"${srcArg} -Report rptSales      # result.images の PNG を読んで確認
 ${run} pagesetup -DbPath "${db}"${srcArg} -Report rptSales -PaperSize A4 -Orientation landscape -Margins "10,10,15,15"
@@ -910,7 +918,7 @@ function upsertBlock(file, block, header) {
   fs.writeFileSync(file, text, 'utf8');
 }
 
-function writeMcpJson(file, db) {
+function writeMcpJson(file, db, withType = true) {
   let json = {};
   try {
     json = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -918,7 +926,8 @@ function writeMcpJson(file, db) {
   json.mcpServers = json.mcpServers || {};
   const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', mcpServerPath(), '-DbPath', db];
   if (cfg().get('sourceFolder')) args.push('-Src', srcFor(db));
-  json.mcpServers.access = { type: 'stdio', command: 'powershell.exe', args };
+  json.mcpServers.access = withType ? { type: 'stdio', command: 'powershell.exe', args } : { command: 'powershell.exe', args };
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(json, null, 2) + '\n', 'utf8');
 }
 
@@ -934,7 +943,9 @@ async function cmdSetupAgent() {
     [
       { label: 'Claude Code', description: '.mcp.json（MCP サーバー登録）と CLAUDE.md（作業手順）', id: 'claude', picked: true },
       { label: 'GitHub Copilot', description: '.github/copilot-instructions.md（MCP サーバーはこの拡張機能が自動登録）', id: 'copilot' },
-      { label: 'その他のエージェント', description: 'AGENTS.md', id: 'agents' },
+      { label: 'Cursor', description: '.cursor/mcp.json（MCP サーバー登録）と .cursor/rules/access-vsc.mdc（作業手順）', id: 'cursor' },
+      { label: 'Gemini CLI', description: '.gemini/settings.json（MCP サーバー登録）と GEMINI.md（作業手順）', id: 'gemini' },
+      { label: 'Codex・その他のエージェント', description: 'AGENTS.md（MCP サーバーは各ツールの設定で登録。CLI でも操作可）', id: 'agents' },
     ],
     { canPickMany: true, placeHolder: '設定する AI エージェントを選んでください' }
   );
@@ -949,13 +960,21 @@ async function cmdSetupAgent() {
     } else if (p.id === 'copilot') {
       upsertBlock(path.join(root, '.github', 'copilot-instructions.md'), block, '');
       written.push('.github/copilot-instructions.md');
+    } else if (p.id === 'cursor') {
+      writeMcpJson(path.join(root, '.cursor', 'mcp.json'), db, false);
+      upsertBlock(path.join(root, '.cursor', 'rules', 'access-vsc.mdc'), block, '---\ndescription: Access VSC（Microsoft Access を VS Code で開発）の作業手順\nalwaysApply: true\n---\n\n');
+      written.push('.cursor/mcp.json', '.cursor/rules/access-vsc.mdc');
+    } else if (p.id === 'gemini') {
+      writeMcpJson(path.join(root, '.gemini', 'settings.json'), db, false);
+      upsertBlock(path.join(root, 'GEMINI.md'), block, '# GEMINI.md\n\n');
+      written.push('.gemini/settings.json', 'GEMINI.md');
     } else if (p.id === 'agents') {
       upsertBlock(path.join(root, 'AGENTS.md'), block, '# AGENTS.md\n\n');
       written.push('AGENTS.md');
     }
   }
   ensureGitignore(root);
-  const extra = picks.some((p) => p.id === 'claude') ? ' Claude Code を再起動すると MCP サーバー「access」の利用許可を求められます。' : '';
+  const extra = picks.some((p) => ['claude', 'cursor', 'gemini'].includes(p.id)) ? ' エージェントを再起動すると MCP サーバー「access」が使えるようになります（利用許可を求められたら許可してください）。' : '';
   const c = await vscode.window.showInformationMessage(`AI エージェント連携を設定しました: ${written.join(', ')}。${extra}`, '開く');
   if (c) for (const f of written) vscode.window.showTextDocument(vscode.Uri.file(path.join(root, f)), { preview: false });
 }

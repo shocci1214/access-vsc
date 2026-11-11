@@ -144,6 +144,8 @@
     <tr><td><b>関数がどこで使われているか</b></td><td>関数名の上で <kbd>Shift</kbd>+<kbd>F12</kbd></td><td>—</td></tr>
     <tr><td>ファイル内の関数の一覧</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd>、または「アウトライン」</td><td>プロシージャ ボックス</td></tr>
     <tr><td>全モジュールの関数を名前で探す</td><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>オブジェクト ブラウザー</td></tr>
+    <tr><td><b>インデントを整える</b></td><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>（空白だけを直す。<code>End If</code> の書き忘れがあると何も変えない）</td><td>—（VBE にはない）</td></tr>
+    <tr><td>変数の名前を変える</td><td>名前の上で <kbd>F2</kbd>（その手続きの中の変数・引数と、モジュール内の Private な名前だけ）</td><td>置換（手作業）</td></tr>
     <tr><td>ひな形を入れる</td><td><code>func</code>・<code>errh</code>・<code>rs</code> などを入力して <kbd>Tab</kbd></td><td>—</td></tr>
     <tr><td>何でも探して実行</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>（コマンド パレット）→「Access:」</td><td>メニュー</td></tr>
     <tr><td>変更前と比べる</td><td>［ソース管理］で変更されたファイルをクリック（git 使用時）</td><td>—</td></tr>
@@ -267,6 +269,7 @@
     <li><b>帳票の見た目を比較</b>：意図しない帳票まで変わっていないか</li>
     <li><b>Access で開いて触ってみる</b>：フォームの動きなど、テストしにくい所</li>
   </ol>
+  <div class="callout tip"><b>「できました」は結果で確かめる</b>AI への作業手順には「完了の条件」（反映が成功し、取り込みの確認で抜けがない・テストの失敗 0・コードチェックのエラー 0・帳票は画像で確認）が入っています。AI の報告に、実行したツールとその結果（テストの件数など）が書かれているかを見てください。結果が書かれていない「できました」は、まだ確かめていない可能性があります。</div>
   <div class="callout tip"><b>プロジェクトのルールを AI に覚えさせる</b><code>CLAUDE.md</code>（Copilot なら <code>.github/copilot-instructions.md</code>）に、命名規則や「金額は Currency 型」などのルールを書き足すと、AI が毎回それに従います。</div>
 
   <h3 id="i3">3. git で履歴を残す</h3>

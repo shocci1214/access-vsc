@@ -58,7 +58,7 @@
   <div class="kind">REFERENCE</div>
   <h1>リファレンス</h1>
   <p>ボタン・コマンド・設定・ファイルの書き方・エラーなどの一覧です。<kbd>Ctrl</kbd>+<kbd>F</kbd> で探してください。使い方を順に覚えたいときは<a href="tutorial.html">チュートリアル</a>、考え方を学ぶときは<a href="course.html">学習コース</a>へ。</p>
-  <div class="meta"><span class="pill">拡張機能 v0.5.0</span></div>
+  <div class="meta"><span class="pill">拡張機能 v0.6.0</span></div>
 </header>
 
 <!-- =========================================================== -->
@@ -137,6 +137,8 @@
     <tr><td>入力補完</td><td>入力中に自動／ <kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>プロジェクトの手続き・定数・モジュール名、手続き内の変数と引数、よく使う関数、キーワード。<code>モジュール名.</code> の後はそのモジュールの Public な手続き</td></tr>
     <tr><td>引数のヒント</td><td><code>(</code> や <code>,</code> を入力したとき</td><td>呼び出している手続きの引数の一覧と、今入力している引数</td></tr>
     <tr><td>折りたたみ</td><td>行番号の横の ˅</td><td>手続き・Type・Enum ごと。フォーム／レポートのテキストは <code>Begin</code>〜<code>End</code> ごと</td></tr>
+    <tr><td>整形</td><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>（右クリック →「ドキュメントのフォーマット」）</td><td>インデントと行末の空白だけを整える（ブロックごとに 1 段。<code>Case</code> はもう 1 段。ラベルは行頭）。<code>End If</code> の書き忘れなどでブロックの対応が取れないときは何も変えない。保存時に整形したいときは設定 <code>"[vba]": { "editor.formatOnSave": true }</code></td></tr>
+    <tr><td>名前の変更</td><td><kbd>F2</kbd></td><td>ローカル変数・引数（その手続きの中）と、モジュール内の Private な名前（そのモジュールの中）を一括で変更。コメント・文字列・<code>obj.名前</code>・<code>rs!名前</code> は変えない。Public な名前、<code>_</code> を含む手続き（イベントの可能性）、フォームの式からも使われている名前は対象外</td></tr>
     <tr><td>スニペット</td><td>下の表の文字を入力して <kbd>Tab</kbd></td><td>よく使う書き方のひな形</td></tr>
   </table></div>
   <div class="table-wrap"><table>
@@ -233,6 +235,7 @@
     <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd></td><td>問題パネル（エラー・警告の一覧）</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>\</kbd></td><td>エディタを左右に分割</td></tr>
     <tr><td><kbd>F12</kbd> / <kbd>Shift</kbd>+<kbd>F12</kbd></td><td>定義へ移動 / 使われている場所の一覧</td></tr>
+    <tr><td><kbd>F2</kbd> / <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd></td><td>名前の変更 / 整形（インデントを整える）</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> / <kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>ファイル内の手続きへ移動 / プロジェクト全体の手続きへ移動</td></tr>
     <tr><td><kbd>Alt</kbd>+<kbd>←</kbd></td><td>移動する前の場所へ戻る</td></tr>
   </table></div>
@@ -358,6 +361,8 @@
     <tr><td><code>implicit-variant</code></td><td>警告</td><td>変数・引数の型（<code>As ...</code>）が書かれていない（暗黙の Variant）。<code>Dim a, b As Long</code> の <code>a</code> も対象</td></tr>
     <tr><td><code>unused-variable</code></td><td>警告</td><td>手続きの中で宣言したのに使っていない変数</td></tr>
     <tr><td><code>broken-reference</code></td><td>警告</td><td>VBA の参照設定が「参照不可」（<code>references.json</code>）。コンパイルできない原因になる</td></tr>
+    <tr><td><code>block-structure</code></td><td>警告</td><td>If / For / Do / With / Select Case / Sub などのブロックの対応が取れない（<code>End If</code> などの書き忘れ）</td></tr>
+    <tr><td><code>format</code></td><td>情報</td><td>インデントが整っていない。整形（<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> または CLI の <code>format</code>）で直せる</td></tr>
     <tr><td><code>implicit-variant-return</code></td><td>情報</td><td>Function / Property Get の戻り値の型が書かれていない</td></tr>
   </table></div>
   <p>エラーがあるとコミット前チェックと CI が失敗します。警告は失敗にはなりません。</p>
@@ -476,7 +481,9 @@
     <tr><td>Claude Code</td><td><code>.mcp.json</code></td><td>MCP サーバー <code>access</code> の登録（<code>%LOCALAPPDATA%\access-vscode\bin\mcp-server.ps1</code>）</td></tr>
     <tr><td>Claude Code</td><td><code>CLAUDE.md</code></td><td>作業手順・注意（<code>&lt;!-- access-vsc:begin --&gt;</code> から <code>end</code> までの部分を更新）</td></tr>
     <tr><td>GitHub Copilot</td><td><code>.github/copilot-instructions.md</code></td><td>同上（MCP サーバーは拡張機能が自動で登録）</td></tr>
-    <tr><td>その他</td><td><code>AGENTS.md</code></td><td>同上</td></tr>
+    <tr><td>Cursor</td><td><code>.cursor/mcp.json</code>, <code>.cursor/rules/access-vsc.mdc</code></td><td>MCP サーバーの登録と作業手順</td></tr>
+    <tr><td>Gemini CLI</td><td><code>.gemini/settings.json</code>, <code>GEMINI.md</code></td><td>MCP サーバーの登録と作業手順</td></tr>
+    <tr><td>Codex・その他</td><td><code>AGENTS.md</code></td><td>作業手順（MCP サーバーは各ツールの設定で登録）</td></tr>
   </table></div>
   <h3>MCP ツール</h3>
   <div class="table-wrap"><table>
@@ -484,7 +491,7 @@
     <tr><td><code>access_status</code></td><td>未反映の変更（Access 不要）</td><td>—</td></tr>
     <tr><td><code>access_list</code></td><td>オブジェクト一覧</td><td>—</td></tr>
     <tr><td><code>access_export</code></td><td>取り出す</td><td><code>force</code>, <code>kinds</code></td></tr>
-    <tr><td><code>access_import</code></td><td>反映＋コンパイル</td><td><code>files</code>, <code>all</code>, <code>deleteMissing</code>, <code>compile</code></td></tr>
+    <tr><td><code>access_import</code></td><td>反映＋コンパイル＋取り込みの確認（<code>result.verify</code>：オブジェクトと Public な手続きが DB にあるか）</td><td><code>files</code>, <code>all</code>, <code>deleteMissing</code>, <code>compile</code></td></tr>
     <tr><td><code>access_compile</code></td><td>コンパイル</td><td>—</td></tr>
     <tr><td><code>access_run</code></td><td>VBA 実行</td><td><code>function</code>, <code>args</code></td></tr>
     <tr><td><code>access_eval</code></td><td>式の評価</td><td><code>expression</code></td></tr>
@@ -494,6 +501,7 @@
     <tr><td><code>access_report_pagesetup</code></td><td>用紙・向き・余白・幅</td><td><code>report</code>, <code>paperSize</code>, <code>orientation</code>, <code>marginTop</code>…, <code>widthCm</code></td></tr>
     <tr><td><code>access_test</code></td><td>テスト</td><td><code>filter</code></td></tr>
     <tr><td><code>access_lint</code></td><td>コードチェック</td><td>—</td></tr>
+    <tr><td><code>access_format</code></td><td>VBA のインデントを整える（空白だけ変更）</td><td><code>files</code>, <code>check</code></td></tr>
     <tr><td><code>access_report_snapshot</code></td><td>帳票の見た目の比較（差分画像を返す）</td><td><code>reports</code>, <code>update</code>, <code>threshold</code></td></tr>
     <tr><td><code>access_setup_ci</code></td><td>テスト・CI の準備</td><td><code>root</code>, <code>gitInit</code>, <code>force</code></td></tr>
     <tr><td><code>access_build</code></td><td>リリース作成（<b>配布はできない</b>）</td><td><code>version</code></td></tr>
@@ -510,7 +518,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $A &lt;コマンド&gt; -DbP
     <tr><th>コマンド</th><th>内容</th><th>オプション</th></tr>
     <tr><td><code>status</code></td><td>未反映の変更（Access 不要）</td><td>—</td></tr>
     <tr><td><code>export</code></td><td>取り出す</td><td><code>-Force</code>（未反映を上書き）, <code>-Kinds modules,queries</code></td></tr>
-    <tr><td><code>import</code></td><td>反映＋コンパイル</td><td><code>-Files modules/x.bas</code>, <code>-All</code>, <code>-DeleteMissing</code>, <code>-NoCompile</code></td></tr>
+    <tr><td><code>import</code></td><td>反映＋コンパイル＋取り込みの確認（<code>result.verify</code>：オブジェクトと Public な手続きが DB にあるか）</td><td><code>-Files modules/x.bas</code>, <code>-All</code>, <code>-DeleteMissing</code>, <code>-NoCompile</code></td></tr>
     <tr><td><code>compile</code></td><td>コンパイル</td><td>—</td></tr>
     <tr><td><code>run</code></td><td>VBA 実行</td><td><code>-Function 名前</code>, <code>-ArgsJson "[1, 'abc']"</code> または <code>-Arg a,b</code></td></tr>
     <tr><td><code>eval</code></td><td>式の評価</td><td><code>-Expr "DCount('*','T1')"</code></td></tr>
@@ -521,6 +529,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $A &lt;コマンド&gt; -DbP
     <tr><td><code>pagesetup</code></td><td>用紙設定</td><td><code>-PaperSize A4</code>, <code>-Orientation landscape</code>, <code>-Margins "10,10,15,15"</code>, <code>-WidthCm</code></td></tr>
     <tr><td><code>test</code></td><td>テスト</td><td><code>-Filter "Test_Tax*"</code>, <code>-JUnit 結果.xml</code>, <code>-Summary 概要.md</code>, <code>-NoLocate</code></td></tr>
     <tr><td><code>lint</code></td><td>コードチェック（Access・DB 不要）</td><td><code>-Src ソースフォルダ</code></td></tr>
+    <tr><td><code>format</code></td><td>VBA のインデントを整える（Access・DB 不要）</td><td><code>-Files</code>, <code>-Check</code>（確認だけ。整っていないファイルがあると失敗）</td></tr>
     <tr><td><code>snapshot</code></td><td>帳票の見た目の比較</td><td><code>-Reports "rpt*"</code>, <code>-Update</code>, <code>-Threshold 0.1</code>, <code>-Tolerance 32</code>, <code>-Pages 5</code>, <code>-Summary</code></td></tr>
     <tr><td><code>setup-ci</code></td><td>テスト・CI の準備</td><td><code>-Root</code>, <code>-GitInit</code>, <code>-Force</code></td></tr>
     <tr><td><code>deploy-init</code></td><td>配布の設定</td><td><code>-AppName</code>, <code>-DeployTo</code>, <code>-BackendPath</code>, <code>-Force</code></td></tr>

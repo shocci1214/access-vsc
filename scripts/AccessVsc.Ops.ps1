@@ -382,6 +382,62 @@ function Import-Query($db, [string]$Name, [string]$Text) {
     # CurrentDb.CreateQueryDef(名前) は自動で追加されるので Append は不要
 }
 
+# LoadFromText は、直前の操作の直後などにまれに失敗する（「データベースが開いていない」など）。少し待って 3 回まで試す
+function Invoke-LoadFromText($app, [int]$AcType, [string]$Name, [string]$Path) {
+    for ($try = 1; ; $try++) {
+        try { $app.LoadFromText($AcType, $Name, $Path); return }
+        catch {
+            if ($try -ge 3) { throw }
+            Start-Sleep -Milliseconds (500 * $try)
+        }
+    }
+}
+
+# ソースの Public な手続き名（Sub / Function / Property）
+function Get-PublicProcNames([string]$Text) {
+    $names = New-Object System.Collections.Generic.List[string]
+    foreach ($m in [regex]::Matches($Text, '(?im)^[ \t]*(?:Public[ \t]+)?(?:Static[ \t]+)?(?:Sub|Function|Property[ \t]+(?:Get|Let|Set))[ \t]+([A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*)[ \t]*\(')) {
+        $line = $m.Value.TrimStart()
+        if ($line -match '^(Private|Friend)\b') { continue }
+        if (-not $names.Contains($m.Groups[1].Value)) { $names.Add($m.Groups[1].Value) }
+    }
+    return , $names.ToArray()
+}
+
+# 取り込んだものが本当に DB に入ったかを、Access 側から確かめる（ファイルの大きさなどでは判断しない）
+#   ・オブジェクトがあるか ・標準/クラスモジュールの Public な手続きが消えていないか
+function Test-ImportedObjects($app, $Src, [string[]]$Files) {
+    $missing = New-Object System.Collections.ArrayList
+    $vbTypes = Get-VbComponentTypes $app
+    $db = $app.CurrentDb()
+    $checked = 0
+    foreach ($rel in $Files) {
+        $info = Get-ObjectInfoFromRelPath $rel
+        if (-not $info -or $info.readOnly) { continue }
+        $checked++
+        try {
+            switch ($info.kind) {
+                'modules' {
+                    if (-not $vbTypes.ContainsKey($info.name)) { [void]$missing.Add([ordered]@{ file = $rel; message = "モジュール $($info.name) が DB にありません" }); continue }
+                    $want = Get-PublicProcNames (Read-SourceText (Join-Path $Src ($rel.Replace('/', '\'))))
+                    if (-not $want.Count) { continue }
+                    $cm = $app.VBE.ActiveVBProject.VBComponents.Item($info.name).CodeModule
+                    $code = if ($cm.CountOfLines -gt 0) { $cm.Lines(1, $cm.CountOfLines) } else { '' }
+                    $have = Get-PublicProcNames $code
+                    $lost = @($want | Where-Object { $have -notcontains $_ })
+                    if ($lost.Count) { [void]$missing.Add([ordered]@{ file = $rel; message = "Public な手続きが DB にありません: $($lost -join ', ')" }) }
+                }
+                'queries' { [void]$db.QueryDefs.Item($info.name).Name }
+                'forms' { [void]$app.CurrentProject.AllForms.Item($info.name).Name }
+                'reports' { [void]$app.CurrentProject.AllReports.Item($info.name).Name }
+                'macros' { [void]$app.CurrentProject.AllMacros.Item($info.name).Name }
+            }
+        }
+        catch { [void]$missing.Add([ordered]@{ file = $rel; message = "$($info.name) が DB にありません" }) }
+    }
+    return [ordered]@{ checked = $checked; ok = ($missing.Count -eq 0); missing = $missing.ToArray() }
+}
+
 function Invoke-ImportOp($app, $P) {
     $src = $P.src
     $manifest = Read-Manifest $src
@@ -412,7 +468,7 @@ function Invoke-ImportOp($app, $P) {
                         }
                         $t = Join-Path $tmp ([guid]::NewGuid().ToString('N') + '.txt')
                         Write-ForLoad $t (Convert-ModuleSource $text $isClass) 'ansi' $warnings $rel
-                        $app.LoadFromText(5, $info.name, $t)
+                        Invoke-LoadFromText $app 5 $info.name $t
                         $needCompile = $true
                     }
                     default {
@@ -422,7 +478,7 @@ function Invoke-ImportOp($app, $P) {
                         }
                         $t = Join-Path $tmp ([guid]::NewGuid().ToString('N') + '.txt')
                         Write-ForLoad $t $text $enc $warnings $rel
-                        $app.LoadFromText($info.acType, $info.name, $t)
+                        Invoke-LoadFromText $app $info.acType $info.name $t
                         if ($info.kind -ne 'macros') { $needCompile = $true }
                     }
                 }
@@ -448,6 +504,7 @@ function Invoke-ImportOp($app, $P) {
 
     $compile = $null
     if ($P.compile -and ($needCompile -or $P.forceCompile)) { $compile = Invoke-Compile $app }
+    $verify = if ($imported.Count) { Test-ImportedObjects $app $src $imported.ToArray() } else { $null }
 
     # マニフェスト更新（成功したものだけ）
     foreach ($rel in $imported) {
@@ -464,13 +521,14 @@ function Invoke-ImportOp($app, $P) {
     $manifest.importedAt = (Get-Date).ToString('yyyy-MM-ddTHH:mm:ss')
     Save-Manifest $src $manifest
 
-    $ok = ($errors.Count -eq 0) -and (-not $compile -or $compile.compiled)
+    $ok = ($errors.Count -eq 0) -and (-not $compile -or $compile.compiled) -and (-not $verify -or $verify.ok)
     $msg = $null
     if ($errors.Count) { $msg = "$($errors.Count) file(s) failed to import" }
     elseif ($compile -and -not $compile.compiled) { $msg = 'Imported, but the VBA project does not compile' }
+    elseif ($verify -and -not $verify.ok) { $msg = "Imported, but $($verify.missing.Count) object(s)/procedure(s) are missing in the database (see result.verify)" }
     return [ordered]@{
         ok       = $ok
-        result   = [ordered]@{ imported = @($imported); deleted = @($deleted); errors = $errors.ToArray(); compile = $compile }
+        result   = [ordered]@{ imported = @($imported); deleted = @($deleted); errors = $errors.ToArray(); compile = $compile; verify = $verify }
         warnings = @($warnings)
         error    = $msg
     }
