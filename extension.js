@@ -824,9 +824,10 @@ function agentDoc(db, root) {
     return (r && !r.startsWith('..') ? r : p).split(path.sep).join('/');
   };
   const src = srcFor(db);
-  const cli = cliPath();
-  const run = `powershell -NoProfile -ExecutionPolicy Bypass -File "${cli}"`;
-  const srcArg = cfg().get('sourceFolder') ? ` -Src "${src}"` : '';
+  // リポジトリに入るファイルなので、PC 固有のパス（ユーザー名を含む）は書かない
+  const run = 'powershell -NoProfile -ExecutionPolicy Bypass -File "%LOCALAPPDATA%\\access-vscode\\bin\\access.ps1"';
+  const srcArg = cfg().get('sourceFolder') ? ` -Src "${rel(src)}"` : '';
+  const dbRel = rel(db);
   return `${AGENT_BEGIN}
 ## Access データベース（Access VSC）
 
@@ -878,22 +879,22 @@ Access データベース \`${rel(db)}\` は \`${rel(src)}/\` にテキストと
 - \`access_build\` で .accde を作れる（版番号の書き込み・本番バックエンドへの張り替え込み）
 - **配布（deploy）はユーザーが明示的に頼んだときだけ**。配布は VS Code の「配布する」か CLI の \`deploy -Yes\` で行う
 
-MCP ツールが使えないときは CLI（結果は JSON）:
+MCP ツールが使えないときは CLI（結果は JSON。プロジェクトのフォルダで実行する。\`%LOCALAPPDATA%\` は cmd の書き方で、PowerShell では \`$env:LOCALAPPDATA\`、bash では \`$LOCALAPPDATA\` に置き換える）:
 \`\`\`
-${run} status  -DbPath "${db}"${srcArg}
-${run} import  -DbPath "${db}"${srcArg}
-${run} import  -DbPath "${db}"${srcArg} -Files modules/Module1.bas
-${run} compile -DbPath "${db}"${srcArg}
-${run} run     -DbPath "${db}"${srcArg} -Function MyFunc -ArgsJson "[1, 'abc']"
-${run} sql     -DbPath "${db}"${srcArg} -Sql "SELECT TOP 10 * FROM MyTable"
-${run} eval    -DbPath "${db}"${srcArg} -Expr "DCount('*','MyTable')"
-${run} export  -DbPath "${db}"${srcArg}
-${run} test    -DbPath "${db}"${srcArg} -Text                 # -Filter "Test_Tax*"
-${run} lint    -DbPath "${db}"${srcArg} -Text
-${run} format  -DbPath "${db}"${srcArg} -Text                 # VBA のインデントを整える（-Check で確認だけ）
-${run} layout  -DbPath "${db}"${srcArg} -Report rptSales
-${run} preview -DbPath "${db}"${srcArg} -Report rptSales      # result.images の PNG を読んで確認
-${run} pagesetup -DbPath "${db}"${srcArg} -Report rptSales -PaperSize A4 -Orientation landscape -Margins "10,10,15,15"
+${run} status  -DbPath "${dbRel}"${srcArg}
+${run} import  -DbPath "${dbRel}"${srcArg}
+${run} import  -DbPath "${dbRel}"${srcArg} -Files modules/Module1.bas
+${run} compile -DbPath "${dbRel}"${srcArg}
+${run} run     -DbPath "${dbRel}"${srcArg} -Function MyFunc -ArgsJson "[1, 'abc']"
+${run} sql     -DbPath "${dbRel}"${srcArg} -Sql "SELECT TOP 10 * FROM MyTable"
+${run} eval    -DbPath "${dbRel}"${srcArg} -Expr "DCount('*','MyTable')"
+${run} export  -DbPath "${dbRel}"${srcArg}
+${run} test    -DbPath "${dbRel}"${srcArg} -Text                 # -Filter "Test_Tax*"
+${run} lint    -DbPath "${dbRel}"${srcArg} -Text
+${run} format  -DbPath "${dbRel}"${srcArg} -Text                 # VBA のインデントを整える（-Check で確認だけ）
+${run} layout  -DbPath "${dbRel}"${srcArg} -Report rptSales
+${run} preview -DbPath "${dbRel}"${srcArg} -Report rptSales      # result.images の PNG を読んで確認
+${run} pagesetup -DbPath "${dbRel}"${srcArg} -Report rptSales -PaperSize A4 -Orientation landscape -Margins "10,10,15,15"
 \`\`\`
 
 ### 注意
@@ -919,14 +920,31 @@ function upsertBlock(file, block, header) {
   fs.writeFileSync(file, text, 'utf8');
 }
 
+// ワークスペースの中なら相対パスにする（リポジトリに入るファイルに、PC 固有のパスやユーザー名を書かないため）
+function relToWorkspace(p) {
+  const root = workspaceRoot();
+  if (!root) return p;
+  const r = path.relative(root, p);
+  return r && !r.startsWith('..') && !path.isAbsolute(r) ? r : p;
+}
+
 function writeMcpJson(file, db, withType = true) {
   let json = {};
-  try {
-    json = JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch (_) { /* new file */ }
+  if (fs.existsSync(file)) {
+    try {
+      json = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
+    } catch (_) {
+      // コメント入りなど、読めないファイルを空にして上書きしない
+      throw new Error(`${relToWorkspace(file)} を JSON として読めないため、書き換えませんでした。MCP サーバー「access」は手で追加してください（リファレンス「AI 連携・MCP ツール」参照）。`);
+    }
+  }
   json.mcpServers = json.mcpServers || {};
-  const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', mcpServerPath(), '-DbPath', db];
-  if (cfg().get('sourceFolder')) args.push('-Src', srcFor(db));
+  // スクリプトの場所は、ユーザー名を含む絶対パスではなく、実行時に LocalAppData から組み立てる。
+  // "$" を使わないのは、MCP クライアントによっては $VAR を環境変数として置き換えてしまうため
+  const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+  let command = `& (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'access-vscode\\bin\\mcp-server.ps1') -DbPath ${q(relToWorkspace(db))}`;
+  if (cfg().get('sourceFolder')) command += ` -Src ${q(relToWorkspace(srcFor(db)))}`;
+  const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command];
   json.mcpServers.access = withType ? { type: 'stdio', command: 'powershell.exe', args } : { command: 'powershell.exe', args };
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(json, null, 2) + '\n', 'utf8');
@@ -954,6 +972,13 @@ async function cmdSetupAgent() {
   const written = [];
   const block = agentDoc(db, root);
   for (const p of picks) {
+    try {
+      setupOneAgent(p);
+    } catch (e) {
+      vscode.window.showErrorMessage(`Access VSC: ${p.label} の設定: ${e.message}`);
+    }
+  }
+  function setupOneAgent(p) {
     if (p.id === 'claude') {
       writeMcpJson(path.join(root, '.mcp.json'), db);
       upsertBlock(path.join(root, 'CLAUDE.md'), block, '# CLAUDE.md\n\n');

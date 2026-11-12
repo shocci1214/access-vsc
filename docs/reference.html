@@ -488,6 +488,9 @@
     <li>AI に VBA・SQL を実行させるツール（<code>access_run</code>・<code>access_eval</code>・<code>access_sql</code> の write）は、自動承認にしないのがおすすめ。読み取り専用のツールには <code>readOnlyHint</code>、書き換えるツールには <code>destructiveHint</code> を付けている</li>
     <li>ダイアログには安全側で答える（確認の質問は「キャンセル」／「いいえ」）</li>
     <li>書き込みの前に自動でバックアップを取る。終了させるのは自分が起動した Access だけ</li>
+    <li>読み取りだけの操作（実行・SQL の参照・プレビュー・取り出し）では DB に保存しない</li>
+    <li>UI テストのキー入力は、テスト用に起動した Access のウィンドウにだけ送る</li>
+    <li>AI 連携の設定ファイル（<code>.mcp.json</code>・<code>CLAUDE.md</code> など）には、ユーザー名を含む PC 固有のパスを書かない（DB がプロジェクトの外にあるときだけ、その絶対パス）。MCP サーバーはプロジェクトのフォルダで起動される前提。既存の設定ファイルが JSON として読めないときは上書きしない</li>
     <li>CI テンプレートの test ジョブは、フォークからの PR では動かない。権限は <code>contents: read</code>。公開リポジトリでは、外部コントリビューターのワークフローに承認を必須にする設定も推奨</li>
     <li>ランチャーは共有フォルダ内のファイルだけを使い、SHA-256 が一致しないファイルは起動しない</li>
   </ul>

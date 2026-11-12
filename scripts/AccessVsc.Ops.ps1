@@ -83,8 +83,10 @@ function Get-VbComponentTypes($app) {
 #   1) 全モジュールをコンパイルして保存（非表示ならダイアログは出ない）
 #   2) 失敗したら VBE の「コンパイル」ボタンを実行し、カーソル位置からエラー箇所を得る
 # ============================================================
-function Invoke-Compile($app) {
-    try { $app.RunCommand(126) } catch {}   # acCmdCompileAndSaveAllModules
+function Invoke-Compile($app, [bool]$Save = $true) {
+    # Save = $false のときは保存しない（実行前の確認など、読み取りだけの操作で DB を書き換えないため）
+    if ($Save) { try { $app.RunCommand(126) } catch {} }   # acCmdCompileAndSaveAllModules
+    else { try { $app.RunCommand(125) } catch {} }        # acCmdCompileAllModules
     if ($app.IsCompiled) { return [ordered]@{ compiled = $true; error = $null } }
 
     $err = [ordered]@{ module = $null; line = $null; column = $null; code = $null; message = 'Compile error' }
@@ -542,7 +544,7 @@ function Test-CompiledBeforeRun($app) {
     if ($app.IsCompiled) { return $null }
     try { $app.RunCommand(125) } catch {}   # コンパイル（保存はしない）
     if ($app.IsCompiled) { return $null }
-    $c = Invoke-Compile $app
+    $c = Invoke-Compile $app $false
     if ($c.compiled) { return $null }
     return [ordered]@{ ok = $false; result = [ordered]@{ compile = $c }; error = 'The VBA project does not compile, so it cannot run. Fix the compile error first (see result.compile).' }
 }
@@ -1058,8 +1060,14 @@ function Invoke-AccessOp([string]$Op, $P, $State) {
     finally {
         $State.phase = 'close'
         if ($app) {
-            try { $app.CloseCurrentDatabase() } catch {}
-            try { $app.Quit() } catch {}
+            # 読み取りだけの操作では、終了時に何も保存しない（Quit の既定は「すべて保存」）。
+            # 書き込む操作は、それぞれの処理の中で保存済み（LoadFromText・コンパイルして保存・DoCmd.Save・DAO）
+            $readOnlyOp = $Op -in @('export', 'run', 'eval', 'list', 'layout', 'preview', 'snapshot') -or ($Op -eq 'sql' -and -not $P.write)
+            if ($readOnlyOp) { try { $app.Quit(2) } catch {} }   # acQuitSaveNone（データベースも一緒に閉じる）
+            else {
+                try { $app.CloseCurrentDatabase() } catch {}
+                try { $app.Quit() } catch {}
+            }
             $State.app = $null
             try { [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($app) } catch {}
             $app = $null
