@@ -32,6 +32,8 @@
     test     Run VBA unit tests (Public Sub Test_* in modules/*.bas) on a copy of the database. Writes JUnit XML.
                -Filter "Test_Tax*"  -JUnit results.xml  -Summary $env:GITHUB_STEP_SUMMARY  -Text
     lint     Static checks of the source folder. Does not need Access or the .accdb (works on any Windows CI).
+    serve    Stay running and read one JSON request per line from stdin ({"id":1,"command":"run","params":{"db":"...","function":"F"}}).
+             Keeps Access open between requests (closed after ACCESSVSC_SESSION_IDLE seconds idle, default 300). Used by the VS Code extension.
     format   Fix VBA indentation and trailing spaces in the source folder (no Access). -Files ...  -Check (only list)
     setup-ci Add Assert module, example test, GitHub Actions workflow, pre-commit hook, .gitattributes (no Access)
                -Root <repo root>  -GitInit  -Force
@@ -45,7 +47,7 @@
 #>
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'format', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
+    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'format', 'serve', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
     [string]$Command,
 
     [string]$DbPath,
@@ -115,6 +117,48 @@ param(
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 . (Join-Path $PSScriptRoot 'AccessVsc.Runner.ps1')
+
+if ($Command -eq 'serve') {
+    # 常駐モード：1 行 1 リクエストの JSON を読み、1 行の JSON で返す。Access は開いたままにして使い回す
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    $reader = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), $utf8)
+    $writer = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput(), $utf8)
+    $writer.AutoFlush = $true
+    $idle = 300
+    if ($env:ACCESSVSC_SESSION_IDLE -match '^\d+$') { $idle = [int]$env:ACCESSVSC_SESSION_IDLE }
+    $useSession = $env:ACCESSVSC_SESSION -ne '0'
+    $task = $null
+    try {
+        while ($true) {
+            if (-not $task) { $task = $reader.ReadLineAsync() }
+            if (-not $task.Wait(500)) { Invoke-SessionMaintenance $idle; continue }
+            $line = $task.Result
+            $task = $null
+            if ($null -eq $line) { break }
+            if (-not $line.Trim()) { continue }
+            $id = $null
+            try {
+                $req = $line | ConvertFrom-Json
+                $id = $req.id
+                $P = ConvertTo-HashtableDeep $req.params
+                if (-not $P) { $P = @{} }
+                switch ($req.command) {
+                    'ping' { $res = [ordered]@{ ok = $true; command = 'ping'; session = [bool]$script:Session } }
+                    'release' { Close-AccessSession; $res = [ordered]@{ ok = $true; command = 'release' } }
+                    default {
+                        $P.session = $useSession
+                        if ($P.db -and [System.IO.Path]::IsPathRooted([string]$P.db)) { Set-Location -LiteralPath (Split-Path -Parent ([string]$P.db)) }
+                        $res = Invoke-AccessVsc ([string]$req.command) $P
+                    }
+                }
+            }
+            catch { $res = [ordered]@{ ok = $false; command = 'serve'; error = $_.Exception.Message } }
+            $writer.WriteLine((ConvertTo-PrettyJson ([ordered]@{ id = $id; response = $res }) -Compress))
+        }
+    }
+    finally { Close-AccessSession }
+    exit 0
+}
 
 function ConvertFrom-LenientJson([string]$Text) {
     # Windows PowerShell 5.1 から別プロセスに渡すと引数内の " が消えるため、'文字列' も受け付ける

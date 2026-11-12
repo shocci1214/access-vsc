@@ -22,6 +22,7 @@ function Check([string]$Name, [bool]$Cond, $Detail) {
     else { $script:fail++; Write-Output "FAIL $Name"; if ($Detail) { Write-Output ("     " + ($Detail | ConvertTo-Json -Depth 8 -Compress)) } }
 }
 function Put([string]$Rel, [string]$Text) { $p = Join-Path $src $Rel; [IO.File]::WriteAllText($p, $Text, $u8) }
+function Test-DatabaseLockedE2E([string]$Path) { try { $fs = [IO.File]::Open($Path, 'Open', 'ReadWrite', 'None'); $fs.Close(); return $false } catch { return $true } }
 
 try {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here 'New-TestDatabase.ps1') -Path $db | Out-Null
@@ -165,6 +166,42 @@ try {
         $p = Join-Path $src 'forms\frmOrder.txt'
         [IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p).Replace('TaxIncluded(Me.txtSubtotal, False)', 'TaxIncluded(Me.txtSubtotal, Nz(Me.chkTakeout, False))'), $u8)
         $r = Acc import; $r = Acc test; Check 'UI test passes after the fix' ($r.ok -and $r.result.summary.passed -eq 2) $r.result.tests
+
+        # 常駐モード（serve）：Access を開いたままにして使い回す
+        $psi = New-Object System.Diagnostics.ProcessStartInfo 'powershell.exe'
+        $psi.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$cli`" serve"
+        $psi.UseShellExecute = $false; $psi.RedirectStandardInput = $true; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true; $psi.CreateNoWindow = $true
+        $psi.StandardOutputEncoding = $u8
+        $host1 = [System.Diagnostics.Process]::Start($psi)
+        $hin = New-Object System.IO.StreamWriter($host1.StandardInput.BaseStream, $u8); $hin.AutoFlush = $true
+        $script:reqId = 0
+        $serve = {
+            param($cmd, $params)
+            $script:reqId++
+            $params.db = $db
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $hin.WriteLine((@{ id = $script:reqId; command = $cmd; params = $params } | ConvertTo-Json -Compress -Depth 5))
+            $resp = ($host1.StandardOutput.ReadLine() | ConvertFrom-Json).response
+            $resp | Add-Member -NotePropertyName clientMs -NotePropertyValue $sw.ElapsedMilliseconds -Force
+            return $resp
+        }
+        try {
+            $r1 = & $serve 'run' @{ function = 'TaxIncluded'; args = @(500, $true) }
+            $r2 = & $serve 'run' @{ function = 'TaxIncluded'; args = @(500, $false) }
+            Check 'serve: session keeps Access open' ($r1.ok -and $r1.result.value -eq 540 -and $r2.ok -and $r2.result.value -eq 550 -and $r2.session) @($r1, $r2)
+            Check 'serve: second call is fast' ($r2.clientMs -lt 2000) $r2.clientMs
+            $st = & $serve 'status' @{}
+            Check 'serve: status shows session, not locked' ($st.ok -and $st.result.accessSession -and -not $st.result.databaseLocked) $st.result
+            # 別のプロセスからの書き込み：セッションを閉じてもらってから実行される
+            $r = Acc compile; Check 'serve: other process can write (session released)' ($r.ok) $r
+            $r3 = & $serve 'run' @{ function = 'TaxIncluded'; args = @(99, $true) }
+            Check 'serve: session reopens after release' ($r3.ok -and $r3.result.value -eq 106 -and $r3.session) $r3
+        }
+        finally {
+            $hin.Close()
+            if (-not $host1.WaitForExit(40000)) { $host1.Kill() }
+        }
+        Check 'serve: Access closed on exit' (-not (Test-DatabaseLockedE2E $db)) $null
     }
     finally { $db = $dbSaved; $src = $srcSaved }
 }

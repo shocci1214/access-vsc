@@ -45,6 +45,7 @@ Microsoft Access の VBA・クエリ・フォーム・レポート・マクロ�
 | CI/CD | リリース・配布 | 版番号の書き込み → 本番バックエンドへの張り替え → **.accde** 作成 → 共有フォルダへ公開。利用者は起動用ランチャーで常に最新版。 |
 | AI 連携 | MCP サーバー・CLI | Copilot には自動登録。Claude Code・Cursor・Gemini CLI 向けの設定と作業手順（完了の条件つき）を生成。JSON を返す CLI も。 |
 | 画面 | サイドバー | 左の Access アイコンから、マウス操作だけで取り出し・反映・実行・プレビューができる。使い方ガイド付き。 |
+| 速さ | Access を開いたまま | 2 回目以降の反映・実行・SQL は 1 秒以内（Access の起動・終了を省く）。使わなければ自動で閉じ、Access の画面で開くときや、AI と VS Code が同じ DB を使うときは自動で譲り合う。 |
 | 安全 | 安全装置 | 未インポートの編集があるとエクスポートを拒否 / DB を他で開いていると書き込みを拒否 / 同じ DB への同時操作を排他 / 信頼されていないフォルダでは無効 |
 
 ### 既存の拡張機能との違い
@@ -61,7 +62,7 @@ Access VSC は、**Access 本体との往復（取り込み・コンパイル・
 - 解析は軽量（言語サーバーなし）。型の推論はしないため、`obj.` のあとの補完は自作モジュールのみ
 - `CallByName` や文字列で組み立てた手続き呼び出し、フォームの式（`=MyFunc()`）からの呼び出しは、参照の検索で見つからないことがある
 - 名前の変更は、安全のため Public な名前・イベント手続き（`_` を含む名前）には使えない
-- 操作のたびに Access を裏で起動するため、1 回 4〜10 秒程度かかる
+- 最初の操作は Access の起動を待つため 2 秒ほどかかる（2 回目以降は、裏で開いたままの Access を使うので 1 秒以内）
 ## 必要なもの
 
 - Windows + Microsoft Access（Microsoft 365 / 2016 以降。Access Runtime では VBE が使えないため不可）
@@ -297,6 +298,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $A pagesetup -DbPath .\app.a
 | `accessVsc.database` | （自動検出） | 対象の `.accdb` / `.mdb` |
 | `accessVsc.sourceFolder` | `<DB名>.src` | ソースフォルダ |
 | `accessVsc.importOnSave` | `false` | 保存したら自動でインポート + コンパイル |
+| `accessVsc.keepAccessOpen` | `true` | Access を裏で開いたままにして速くする（オフにすると操作のたびに起動・終了） |
+| `accessVsc.keepAccessOpenSec` | `300` | 使わない時間がこの秒数を超えたら、開いたままの Access を閉じる |
 | `accessVsc.timeoutSec` | `0`（既定値） | Access 操作のタイムアウト |
 | `accessVsc.sqlRowLimit` | `200` | SQL 結果の最大行数 |
 | `accessVsc.powershellPath` | `powershell.exe` | PowerShell の実行ファイル |

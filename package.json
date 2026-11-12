@@ -2,7 +2,7 @@
   "name": "access-vscode",
   "displayName": "Access VSC",
   "description": "Microsoft Access の VBA・クエリ・フォーム・レポートを VS Code で編集し、AI エージェント（Claude Code / GitHub Copilot）から操作できるようにする",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "publisher": "local",
   "license": "MIT",
   "repository": { "type": "git", "url": "https://github.com/shocci1214/access-vsc.git" },
@@ -255,6 +255,17 @@
           "type": "boolean",
           "default": true,
           "description": "ソースフォルダ内のファイルを保存したら、コードチェック（lint。Access 不要）を自動で実行する。"
+        },
+        "accessVsc.keepAccessOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Access を裏で開いたままにして、反映・実行・SQL などを速くする（2 回目以降は 1 秒以内）。Access の画面で同じ DB を開くと、自動で閉じてから開きます。オフにすると、操作のたびに Access を起動・終了します。"
+        },
+        "accessVsc.keepAccessOpenSec": {
+          "type": "number",
+          "default": 300,
+          "minimum": 10,
+          "description": "使わない時間がこの秒数を超えたら、開いたままの Access を閉じる。"
         },
         "accessVsc.timeoutSec": {
           "type": "number",

@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AccessVsc.Runner.ps1')
 
-$script:Version = '0.7.1'
+$script:Version = '0.8.0'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), $utf8)
 $stdout = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput(), $utf8)
@@ -175,13 +175,23 @@ function Invoke-Tool([string]$Name, $A) {
         'access_setup_ci' { $cmd = 'setup-ci'; $P.root = $A.root; $P.gitInit = [bool]$A.gitInit; $P.force = [bool]$A.force }
         default { throw "Unknown tool: $Name" }
     }
+    # Access を開いたままにして使い回す（ACCESSVSC_SESSION=0 で無効）
+    $P.session = $env:ACCESSVSC_SESSION -ne '0'
     return Invoke-AccessVsc $cmd $P
 }
 
+$sessionIdle = 300
+if ($env:ACCESSVSC_SESSION_IDLE -match '^\d+$') { $sessionIdle = [int]$env:ACCESSVSC_SESSION_IDLE }
+
 Write-Log "started (default database: $(if ($DbPath) { $DbPath } else { '(none)' }))"
 
+$readTask = $null
 while ($true) {
-    $line = $stdin.ReadLine()
+    # 待っている間に、使っていない Access を閉じる・ほかのプロセスに頼まれたら閉じる
+    if (-not $readTask) { $readTask = $stdin.ReadLineAsync() }
+    if (-not $readTask.Wait(500)) { Invoke-SessionMaintenance $sessionIdle; continue }
+    $line = $readTask.Result
+    $readTask = $null
     if ($null -eq $line) { break }
     if (-not $line.Trim()) { continue }
     try { $msg = $line | ConvertFrom-Json }
@@ -245,3 +255,6 @@ while ($true) {
         }
     }
 }
+
+# 終了：開いたままの Access を閉じる
+Close-AccessSession

@@ -1026,14 +1026,26 @@ function Invoke-MakeAccdeOp($app, $P, $State) {
 function Invoke-AccessOp([string]$Op, $P, $State) {
     $app = $null
     $out = $null
+    $keep = [bool]$State.keep
     try {
-        $app = New-Object -ComObject Access.Application
-        $State.app = $app
-        $State.hwnd = [long]$app.hWndAccessApp()
-        $app.Visible = [bool]$P.visible
-        $app.AutomationSecurity = 1     # msoAutomationSecurityLow（マクロ有効）
-        $State.phase = 'open'
-        if (-not $P.noOpen) { $app.OpenCurrentDatabase([string]$P.db, [bool]$P.exclusive) }
+        if ($keep -and $global:AvscApp) {
+            # セッション：前の呼び出しで開いた Access を使う（生きているか確かめてから）
+            try { [void]$global:AvscApp.CurrentProject.FullName; $app = $global:AvscApp } catch { $global:AvscApp = $null }
+        }
+        if ($app) {
+            $State.app = $app
+            $State.hwnd = $global:AvscHwnd
+        }
+        else {
+            $app = New-Object -ComObject Access.Application
+            $State.app = $app
+            $State.hwnd = [long]$app.hWndAccessApp()
+            $app.Visible = [bool]$P.visible
+            $app.AutomationSecurity = 1     # msoAutomationSecurityLow（マクロ有効）
+            $State.phase = 'open'
+            if (-not $P.noOpen) { $app.OpenCurrentDatabase([string]$P.db, [bool]$P.exclusive) }
+            if ($keep) { $global:AvscApp = $app; $global:AvscHwnd = $State.hwnd }
+        }
         $State.phase = $Op
         switch ($Op) {
             'export' { $out = Invoke-ExportOp $app $P }
@@ -1059,6 +1071,24 @@ function Invoke-AccessOp([string]$Op, $P, $State) {
     }
     finally {
         $State.phase = 'close'
+        if ($app -and $keep) {
+            # セッション：開いたままにする。次の操作に影響しないよう、開いているフォーム・レポートは閉じる
+            $alive = $true
+            try {
+                for ($i = 0; $i -lt 50 -and $app.Forms.Count -gt 0; $i++) { $app.DoCmd.Close(2, $app.Forms.Item(0).Name, 2) }
+                for ($i = 0; $i -lt 50 -and $app.Reports.Count -gt 0; $i++) { $app.DoCmd.Close(3, $app.Reports.Item(0).Name, 2) }
+                [void]$app.CurrentProject.FullName
+            }
+            catch { $alive = $false }
+            if ($alive) {
+                $State.phase = 'done'
+                $app = $null
+            }
+            else {
+                $State.keep = $false
+                $global:AvscApp = $null
+            }
+        }
         if ($app) {
             # 読み取りだけの操作では、終了時に何も保存しない（Quit の既定は「すべて保存」）。
             # 書き込む操作は、それぞれの処理の中で保存済み（LoadFromText・コンパイルして保存・DoCmd.Save・DAO）

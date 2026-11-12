@@ -195,6 +195,83 @@ function syncStatus(src) {
 // ------------------------------------------------------------
 // CLI 実行（1 度に 1 つずつ、順番に）
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// 常駐プロセス（access.ps1 serve）：PowerShell の起動を省き、Access を開いたままにして使い回す。
+//   1 行 1 リクエストの JSON を送り、1 行の JSON を受け取る。止まったら作り直す
+// ------------------------------------------------------------
+class AccessHost {
+  constructor() {
+    this.pending = new Map();
+    this.seq = 0;
+    this.buf = Buffer.alloc(0);
+    this.dead = false;
+    const env = Object.assign({}, process.env, { ACCESSVSC_SESSION_IDLE: String(cfg().get('keepAccessOpenSec') || 300) });
+    this.child = cp.spawn(powershell(), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', cliPath(), 'serve'], { windowsHide: true, env });
+    this.child.stdout.on('data', (d) => this.onData(d));
+    this.child.stderr.on('data', (d) => output.append(d.toString('utf8')));
+    const fail = (why) => {
+      this.dead = true;
+      for (const [, p] of this.pending) {
+        clearTimeout(p.timer);
+        p.resolve({ ok: false, command: p.command, error: why });
+      }
+      this.pending.clear();
+    };
+    this.child.on('error', (e) => fail(String(e)));
+    this.child.on('exit', () => fail('Access VSC の常駐プロセスが終了しました。もう一度実行してください。'));
+  }
+  onData(d) {
+    this.buf = Buffer.concat([this.buf, d]);
+    let i;
+    while ((i = this.buf.indexOf(10)) >= 0) {
+      const line = this.buf.slice(0, i).toString('utf8').trim();
+      this.buf = this.buf.slice(i + 1);
+      if (!line) continue;
+      let m;
+      try {
+        m = JSON.parse(line);
+      } catch (_) {
+        output.appendLine(line);
+        continue;
+      }
+      const p = this.pending.get(m.id);
+      if (!p) continue;
+      this.pending.delete(m.id);
+      clearTimeout(p.timer);
+      p.resolve(m.response || { ok: false, command: p.command, error: 'Empty response' });
+    }
+  }
+  request(command, params, timeoutMs) {
+    const id = ++this.seq;
+    return new Promise((resolve) => {
+      // 操作ごとの時間切れは常駐プロセスの中で処理する。これは常駐プロセス自体が固まったときの保険
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        resolve({ ok: false, command, error: '応答がないため、常駐プロセスを再起動します。もう一度実行してください。' });
+        this.kill();
+      }, timeoutMs);
+      this.pending.set(id, { resolve, timer, command });
+      this.child.stdin.write(JSON.stringify({ id, command, params }) + '\n');
+    });
+  }
+  kill() {
+    if (this.dead) return;
+    this.dead = true;
+    try { this.child.stdin.end(); } catch (_) { /* closed */ }
+    const c = this.child;
+    setTimeout(() => { try { c.kill(); } catch (_) { /* gone */ } }, 30000).unref();
+  }
+}
+let accessHost;
+function getHost() {
+  if (!accessHost || accessHost.dead) accessHost = new AccessHost();
+  return accessHost;
+}
+// 開いたままの Access を閉じてもらう（Access の画面で開く前など）
+async function releaseAccessSession() {
+  if (accessHost && !accessHost.dead) await accessHost.request('release', {}, 60000);
+}
+
 function access(command, params = {}, opts = {}) {
   const job = async () => {
     const db = opts.db || (await getDb(true));
@@ -202,6 +279,20 @@ function access(command, params = {}, opts = {}) {
     const p = Object.assign({}, params);
     const t = cfg().get('timeoutSec');
     if (t && !p.timeoutSec) p.timeoutSec = t;
+    if (cfg().get('keepAccessOpen') !== false) {
+      p.db = db;
+      if (cfg().get('sourceFolder')) p.src = srcFor(db);
+      const viaHost = async () => {
+        output.appendLine(`\n[${new Date().toLocaleTimeString()}] ${command} ${Object.keys(params).length ? JSON.stringify(params) : ''}`);
+        const res = await getHost().request(command, p, 60 * 60 * 1000);
+        output.appendLine(JSON.stringify(res, null, 2));
+        return res;
+      };
+      return vscode.window.withProgress(
+        { location: opts.quiet ? vscode.ProgressLocation.Window : vscode.ProgressLocation.Notification, title: opts.title || `Access: ${command} を実行中...` },
+        viaHost
+      );
+    }
     const tmp = path.join(os.tmpdir(), `accessvsc_${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2)}.json`);
     fs.writeFileSync(tmp, JSON.stringify(p), 'utf8');
     const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', cliPath(), command, '-DbPath', db, '-ParamsFile', tmp];
@@ -603,7 +694,9 @@ async function cmdStatus() {
 
 async function cmdOpenInAccess() {
   const db = await getDb(true);
-  if (db) vscode.env.openExternal(vscode.Uri.file(db));
+  if (!db) return;
+  await releaseAccessSession();   // 裏で開いたままの Access を閉じてから
+  vscode.env.openExternal(vscode.Uri.file(db));
 }
 
 // ------------------------------------------------------------
@@ -1860,6 +1953,9 @@ function activate(context) {
   scheduleStatusRefresh();
 }
 
-function deactivate() {}
+function deactivate() {
+  // 常駐プロセスを止める（開いたままの Access も閉じる）
+  if (accessHost) accessHost.kill();
+}
 
 module.exports = { activate, deactivate };

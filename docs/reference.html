@@ -58,7 +58,7 @@
   <div class="kind">REFERENCE</div>
   <h1>リファレンス</h1>
   <p>ボタン・コマンド・設定・ファイルの書き方・エラーなどの一覧です。<kbd>Ctrl</kbd>+<kbd>F</kbd> で探してください。使い方を順に覚えたいときは<a href="tutorial.html">チュートリアル</a>、考え方を学ぶときは<a href="course.html">学習コース</a>へ。</p>
-  <div class="meta"><span class="pill">拡張機能 v0.7.1</span></div>
+  <div class="meta"><span class="pill">拡張機能 v0.8.0</span></div>
 </header>
 
 <!-- =========================================================== -->
@@ -215,6 +215,8 @@
     <tr><td><code>accessVsc.sourceFolder</code></td><td>（空）</td><td>ソースフォルダ。空なら「データベース名.src」（例 <code>shop.accdb.src</code>）</td></tr>
     <tr><td><code>accessVsc.importOnSave</code></td><td>オフ</td><td>保存したら自動で反映・コンパイル</td></tr>
     <tr><td><code>accessVsc.lintOnSave</code></td><td>オン</td><td>保存したら自動でコードチェック</td></tr>
+    <tr><td><code>accessVsc.keepAccessOpen</code></td><td>true</td><td>Access を裏で開いたままにして、2 回目以降の反映・実行・SQL などを速くする。オフにすると操作のたびに Access を起動・終了する</td></tr>
+    <tr><td><code>accessVsc.keepAccessOpenSec</code></td><td>300</td><td>使わない時間がこの秒数を超えたら、開いたままの Access を閉じる</td></tr>
     <tr><td><code>accessVsc.timeoutSec</code></td><td>0</td><td>Access の操作を打ち切る秒数。0 なら操作ごとの既定（実行 60 秒、取り出し・反映 600 秒、テスト 900 秒など）</td></tr>
     <tr><td><code>accessVsc.sqlRowLimit</code></td><td>200</td><td>「データを見る」の最大行数</td></tr>
     <tr><td><code>accessVsc.powershellPath</code></td><td>powershell.exe</td><td>通常は変更不要（Windows PowerShell 5.1 を推奨）</td></tr>
@@ -471,7 +473,9 @@
   <h2>動作環境と制限</h2>
   <ul>
     <li>Windows 10 / 11、Microsoft Access（Microsoft 365 または 2016 以降。<b>Access Runtime のみは不可</b>）、VS Code 1.101 以降、Windows PowerShell 5.1</li>
-    <li>操作のたびに Access を裏で起動する（1 回 4〜10 秒程度）</li>
+    <li>最初の操作は Access の起動を待つ（2 秒ほど）。2 回目以降は裏で開いたままの Access を使う（1 秒以内）。テスト・帳票スナップショット・ビルドは、これまでどおり別の Access で動く</li>
+    <li>開いたままの Access は、使わない時間が <code>accessVsc.keepAccessOpenSec</code>（既定 300 秒）を超えると閉じる。「Access で開く」の前・別のプロセス（AI の MCP サーバーなど）が同じ DB に書き込むときも、自動で閉じる</li>
+    <li>開いたままの間、VBA のモジュール変数は次の実行まで残る（反映すると消える）</li>
     <li>AutoExec マクロ・スタートアップ フォームは操作のたびに動く</li>
     <li>VBA は Shift-JIS（絵文字など不可）</li>
     <li>MsgBox は自動で答える：OK だけの通知は OK、確認の質問（はい／いいえ、OK／キャンセル）は安全側の「キャンセル」→「いいえ」。InputBox・モーダルフォームは時間切れ</li>
@@ -551,6 +555,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $A &lt;コマンド&gt; -DbP
     <tr><td><code>preview</code></td><td>PDF・PNG</td><td><code>-Report</code>, <code>-Where "条件"</code>, <code>-Pages 3</code></td></tr>
     <tr><td><code>pagesetup</code></td><td>用紙設定</td><td><code>-PaperSize A4</code>, <code>-Orientation landscape</code>, <code>-Margins "10,10,15,15"</code>, <code>-WidthCm</code></td></tr>
     <tr><td><code>test</code></td><td>テスト</td><td><code>-Filter "Test_Tax*"</code>, <code>-JUnit 結果.xml</code>, <code>-Summary 概要.md</code>, <code>-NoLocate</code></td></tr>
+    <tr><td><code>serve</code></td><td>常駐して、1 行 1 リクエストの JSON（<code>{"id":1,"command":"run","params":{"db":"…","function":"F"}}</code>）を処理する。Access を開いたままにして使い回す（VS Code 拡張が使う）</td><td>環境変数 <code>ACCESSVSC_SESSION_IDLE</code>（秒）・<code>ACCESSVSC_SESSION=0</code>（開いたままにしない）</td></tr>
     <tr><td><code>lint</code></td><td>コードチェック（Access・DB 不要）</td><td><code>-Src ソースフォルダ</code></td></tr>
     <tr><td><code>format</code></td><td>VBA のインデントを整える（Access・DB 不要）</td><td><code>-Files</code>, <code>-Check</code>（確認だけ。整っていないファイルがあると失敗）</td></tr>
     <tr><td><code>snapshot</code></td><td>帳票の見た目の比較</td><td><code>-Reports "rpt*"</code>, <code>-Update</code>, <code>-Threshold 0.1</code>, <code>-Tolerance 32</code>, <code>-Pages 5</code>, <code>-Summary</code></td></tr>

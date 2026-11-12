@@ -22,6 +22,111 @@ $script:WriteCommands = @('import', 'compile', 'pagesetup')
 $script:MaxDialogs = 10
 
 # ------------------------------------------------------------
+# セッション：常駐するプロセス（access.ps1 serve・MCP サーバー）では、Access を開いたままにして使い回す。
+#   Access の起動・DB を開く・終了（合わせて 3〜4 秒）を省く。
+#   ・使うのはこの一覧の操作だけ（テスト・スナップショット・ビルドなどは、これまでどおり別の Access）
+#   ・しばらく使わなければ閉じる（Invoke-SessionMaintenance）
+#   ・別のプロセスが同じ DB を使いたいときは、名前付きイベントで閉じてもらう（Request-SessionRelease）
+# ------------------------------------------------------------
+$script:SessionOps = @('export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup')
+$script:Session = $null
+
+function Get-SessionEventName([string]$Db) { return 'Local\AccessVsc_Release_' + (Get-StringSha1 $Db.ToLowerInvariant()) }
+function Get-SessionInfoPath([string]$Db) { return Join-Path (Split-Path -Parent $Db) '.accessvsc\session.json' }
+
+# このプロセスのセッションを閉じる（Access を保存せずに終了）
+function Close-AccessSession {
+    $s = $script:Session
+    if (-not $s) { return }
+    $script:Session = $null
+    try {
+        $ps = [powershell]::Create()
+        $ps.Runspace = $s.rs
+        [void]$ps.AddScript('if ($global:AvscApp) { try { $global:AvscApp.Quit(2) } catch {}; try { [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($global:AvscApp) } catch {}; $global:AvscApp = $null; [GC]::Collect(); [GC]::WaitForPendingFinalizers() }')
+        $h = $ps.BeginInvoke()
+        if ($h.AsyncWaitHandle.WaitOne(20000)) {
+            try { [void]$ps.EndInvoke($h) } catch {}
+            $ps.Dispose()
+            $s.rs.Dispose()
+        }
+        else { try { [void]$ps.BeginStop($null, $null) } catch {} }
+    }
+    catch {}
+    if ($s.accessPid) {
+        $proc = Get-Process -Id $s.accessPid -ErrorAction SilentlyContinue
+        if ($proc -and -not $proc.WaitForExit(8000)) { Stop-Process -Id $s.accessPid -Force -ErrorAction SilentlyContinue }
+    }
+    if ($s.event) { try { $s.event.Dispose() } catch {} }
+    if ($s.infoFile) { Remove-Item -LiteralPath $s.infoFile -Force -ErrorAction SilentlyContinue }
+}
+
+# Access が強制終了されたときなど：閉じる処理をせずに捨てる
+function Remove-AccessSession {
+    $s = $script:Session
+    if (-not $s) { return }
+    $script:Session = $null
+    if ($s.accessPid) { Stop-Process -Id $s.accessPid -Force -ErrorAction SilentlyContinue }
+    try { $s.rs.Dispose() } catch {}
+    if ($s.event) { try { $s.event.Dispose() } catch {} }
+    if ($s.infoFile) { Remove-Item -LiteralPath $s.infoFile -Force -ErrorAction SilentlyContinue }
+}
+
+# 常駐プロセスが定期的に呼ぶ：使っていない・閉じてと頼まれた・Access がいなくなった
+function Invoke-SessionMaintenance([int]$IdleSec = 300) {
+    $s = $script:Session
+    if (-not $s) { return }
+    if ($s.accessPid -and -not (Get-Process -Id $s.accessPid -ErrorAction SilentlyContinue)) { Remove-AccessSession; return }
+    $asked = $false
+    if ($s.event) { try { $asked = $s.event.WaitOne(0) } catch {} }
+    if ($asked -or ((Get-Date) - $s.lastUsed).TotalSeconds -gt $IdleSec) { Close-AccessSession }
+}
+
+# ほかの常駐プロセスが DB を開いたままにしていたら、閉じてもらって待つ
+function Request-SessionRelease([string]$Db) {
+    $info = Get-SessionInfoPath $Db
+    if (-not (Test-Path -LiteralPath $info)) { return $false }
+    try { $j = [System.IO.File]::ReadAllText($info) | ConvertFrom-Json } catch { return $false }
+    if ([int]$j.pid -eq $PID -or -not (Get-Process -Id ([int]$j.pid) -ErrorAction SilentlyContinue)) { return $false }
+    $ev = $null
+    if (-not [System.Threading.EventWaitHandle]::TryOpenExisting((Get-SessionEventName $Db), [ref]$ev)) { return $false }
+    try { [void]$ev.Set() } finally { $ev.Dispose() }
+    $deadline = (Get-Date).AddSeconds(30)
+    while ((Get-Date) -lt $deadline) {
+        if (-not (Test-DatabaseLocked $Db)) { return $true }
+        Start-Sleep -Milliseconds 300
+    }
+    return $false
+}
+
+# ユーザーが Access の画面でこの DB を開いているか（ウィンドウのタイトルにパスが出る）
+function Test-AccessGuiHasDb([string]$Db, [int]$ExceptPid = 0) {
+    foreach ($p in @(Get-Process MSACCESS -ErrorAction SilentlyContinue)) {
+        if ($p.Id -eq $ExceptPid -or -not $p.MainWindowTitle) { continue }
+        if ($p.MainWindowTitle.IndexOf($Db, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+    }
+    return $false
+}
+
+# DB を使っているのはだれか：none / session（Access VSC のセッションだけ）/ other（ユーザーの Access など）
+function Get-DatabaseLockState([string]$Db) {
+    $own = $script:Session -and $script:Session.db -eq $Db
+    if ($own) {
+        if (Test-AccessGuiHasDb $Db $script:Session.accessPid) { return 'other' }
+        return 'session'
+    }
+    if (-not (Test-DatabaseLocked $Db)) { return 'none' }
+    $info = Get-SessionInfoPath $Db
+    if (Test-Path -LiteralPath $info) {
+        try {
+            $j = [System.IO.File]::ReadAllText($info) | ConvertFrom-Json
+            if ((Get-Process -Id ([int]$j.pid) -ErrorAction SilentlyContinue) -and -not (Test-AccessGuiHasDb $Db ([int]$j.accessPid))) { return 'session' }
+        }
+        catch {}
+    }
+    return 'other'
+}
+
+# ------------------------------------------------------------
 # Win32 ヘルパーの読み込み（コンパイル結果を %LOCALAPPDATA% にキャッシュ）
 # ------------------------------------------------------------
 function Initialize-Win32 {
@@ -150,25 +255,39 @@ function Resolve-Dialog($dlg, $state, [bool]$AllowDebug) {
 # ------------------------------------------------------------
 # Access で 1 操作を実行（別スレッド + 見張り + タイムアウト）
 # ------------------------------------------------------------
-function Invoke-InAccess([string]$Op, [hashtable]$P, [int]$TimeoutSec) {
+function Invoke-InAccess([string]$Op, [hashtable]$P, [int]$TimeoutSec, [bool]$UseSession = $false) {
     Initialize-Win32
-    $state = [hashtable]::Synchronized(@{ app = $null; hwnd = $null; phase = 'start'; runtimeError = $null })
+    if ($UseSession -and $script:Session -and $script:Session.db -ne $P.db) {
+        # 別の DB に切り替える：開いたままの Access を先に閉じる（テストなど、DB のコピーを別の Access で開く操作では閉じない）
+        Close-AccessSession
+    }
+    $state = [hashtable]::Synchronized(@{ app = $null; hwnd = $null; phase = 'start'; runtimeError = $null; keep = $UseSession })
     $dialogs = New-Object System.Collections.ArrayList
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
 
-    $rs = [runspacefactory]::CreateRunspace()
-    $rs.ApartmentState = 'STA'
-    $rs.ThreadOptions = 'ReuseThread'
-    $rs.Open()
+    if ($UseSession -and $script:Session) {
+        $rs = $script:Session.rs
+        $state.hwnd = $script:Session.hwnd
+    }
+    else {
+        $rs = [runspacefactory]::CreateRunspace()
+        $rs.ApartmentState = 'STA'
+        $rs.ThreadOptions = 'ReuseThread'
+        $rs.Open()
+        if ($UseSession) { $script:Session = @{ db = $P.db; rs = $rs; hwnd = $null; accessPid = 0; lastUsed = (Get-Date); event = $null; infoFile = $null } }
+    }
     $rs.SessionStateProxy.SetVariable('state', $state)
     $ps = [powershell]::Create()
     $ps.Runspace = $rs
-    [void]$ps.AddScript({
-            param($scriptDir, $op, $p)
-            . (Join-Path $scriptDir 'AccessVsc.Common.ps1')
-            . (Join-Path $scriptDir 'AccessVsc.Ops.ps1')
-            Invoke-AccessOp $op $p $state
-        }).AddArgument($script:ScriptDir).AddArgument($Op).AddArgument($P)
+    # 文字列で渡すとグローバル スコープで動くので、読み込んだ関数と開いた Access が次の呼び出しまで残る
+    [void]$ps.AddScript(@"
+param(`$scriptDir, `$op, `$p)
+if (-not (Get-Command Invoke-AccessOp -ErrorAction SilentlyContinue)) {
+    . (Join-Path `$scriptDir 'AccessVsc.Common.ps1')
+    . (Join-Path `$scriptDir 'AccessVsc.Ops.ps1')
+}
+Invoke-AccessOp `$op `$p `$state
+"@).AddArgument($script:ScriptDir).AddArgument($Op).AddArgument($P)
 
     $handle = $ps.BeginInvoke()
     $accessPid = 0
@@ -180,7 +299,7 @@ function Invoke-InAccess([string]$Op, [hashtable]$P, [int]$TimeoutSec) {
     $allowDebug = ($Op -in @('run', 'eval', 'test'))
 
     while (-not $handle.IsCompleted) {
-        Start-Sleep -Milliseconds 200
+        [void]$handle.AsyncWaitHandle.WaitOne(200)   # 終わったらすぐ抜ける
         if (-not $accessPid -and $state.hwnd) { $accessPid = [int][AccessVsc.Win32]::ProcessIdOf([long]$state.hwnd) }
         if ($accessPid) {
             foreach ($d in [AccessVsc.Win32]::FindDialogs([uint32]$accessPid)) {
@@ -219,11 +338,36 @@ function Invoke-InAccess([string]$Op, [hashtable]$P, [int]$TimeoutSec) {
         catch { $threadError = $_.Exception.Message }
         if (-not $out -and $ps.Streams.Error.Count -gt 0) { $threadError = $ps.Streams.Error[0].ToString() }
         $ps.Dispose()
-        $rs.Dispose()
+        if (-not $UseSession) { $rs.Dispose() }
     }
     else {
         # スレッドが戻ってこない：止めるよう依頼だけして先へ進む
         try { [void]$ps.BeginStop($null, $null) } catch {}
+    }
+
+    if ($UseSession -and $script:Session) {
+        if ($killed -or -not $handle.IsCompleted -or -not $state.keep) {
+            # Access を止めた・使えなくなった：セッションを捨てる（次の呼び出しで作り直す）
+            Remove-AccessSession
+        }
+        else {
+            $s = $script:Session
+            $s.lastUsed = Get-Date
+            if ($state.hwnd) { $s.hwnd = $state.hwnd }
+            if (-not $s.accessPid -and $accessPid) { $s.accessPid = $accessPid }
+            if (-not $s.event) {
+                # 別のプロセスから「閉じて」と頼まれるための目印
+                try {
+                    $s.event = New-Object System.Threading.EventWaitHandle -ArgumentList $false, ([System.Threading.EventResetMode]::AutoReset), (Get-SessionEventName $s.db)
+                    $s.infoFile = Get-SessionInfoPath $s.db
+                    $dir = Split-Path -Parent $s.infoFile
+                    if (-not (Test-Path -LiteralPath $dir)) { [void](New-Item -ItemType Directory -Path $dir -Force) }
+                    [System.IO.File]::WriteAllText($s.infoFile, (ConvertTo-PrettyJson ([ordered]@{ pid = $PID; accessPid = $s.accessPid; db = $s.db; started = (Get-Date).ToString('s') })), (New-Object System.Text.UTF8Encoding($false)))
+                }
+                catch {}
+            }
+        }
+        $accessPid = 0   # 開いたままにするので、終了は待たない
     }
 
     # Quit 後も Access が残ることがあるので、少し待ってから終了させる（DB のロックを残さないため）
@@ -378,7 +522,9 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
 
         if ($Command -eq 'status') {
             $res.result = Get-SyncStatus $src
-            $res.result.databaseLocked = Test-DatabaseLocked $db
+            $lockState = Get-DatabaseLockState $db
+            $res.result.databaseLocked = ($lockState -eq 'other')
+            $res.result.accessSession = ($lockState -eq 'session')
             $res.ok = $true
             return $res
         }
@@ -402,10 +548,18 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
         if (-not $got) { $mutex = $null; throw 'Another Access VSC operation on this database is still running.' }
 
         $isWrite = ($Command -in $script:WriteCommands) -or ($Command -eq 'sql' -and $P.write)
-        if (Test-DatabaseLocked $db) {
+        $lock = Get-DatabaseLockState $db
+        if ($lock -eq 'session' -and -not ($script:Session -and $script:Session.db -eq $db)) {
+            # ほかの常駐プロセス（VS Code / AI）が開いたままにしている：閉じてもらう
+            [void](Request-SessionRelease $db)
+            $lock = Get-DatabaseLockState $db
+        }
+        if ($lock -ne 'none' -and -not ($lock -eq 'session' -and $script:Session -and $script:Session.db -eq $db)) {
             if ($isWrite) { throw 'The database is open in another process (probably Access). Close it and retry.' }
             $res.warnings = @('The database is open in another process; results may not reflect unsaved changes.')
         }
+        # セッション（開いたままの Access）を使うのは、ほかに使っている人がいないときだけ
+        $useSession = [bool]$P.session -and $Command -in $script:SessionOps -and ($lock -eq 'none' -or ($lock -eq 'session' -and $script:Session -and $script:Session.db -eq $db))
 
         if ($Command -in @('snapshot', 'build', 'deploy')) {
             # 複数回 Access を使う処理（AccessVsc.Release.ps1）
@@ -500,7 +654,8 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
 
         if ($isWrite -and -not $P.noBackup) { $res.backup = New-DatabaseBackup $db }
 
-        $out = Invoke-InAccess $Command $P $timeout
+        $out = Invoke-InAccess $Command $P $timeout $useSession
+        if ($useSession) { $res.session = $true }
         $res.ok = [bool]$out.ok
         $res.result = $out.result
         if ($out.error) { $res.error = $out.error }
