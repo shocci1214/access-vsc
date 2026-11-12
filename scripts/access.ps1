@@ -34,6 +34,8 @@
     lint     Static checks of the source folder. Does not need Access or the .accdb (works on any Windows CI).
     serve    Stay running and read one JSON request per line from stdin ({"id":1,"command":"run","params":{"db":"...","function":"F"}}).
              Keeps Access open between requests (closed after ACCESSVSC_SESSION_IDLE seconds idle, default 300). Used by the VS Code extension.
+    document Write Markdown documentation of the database structure (tables, ER diagram, queries, forms, reports, VBA,
+             who-uses-what) from the source folder. No Access needed. -Out <folder> (default: <db>.docs). Notes are kept.
     format   Fix VBA indentation and trailing spaces in the source folder (no Access). -Files ...  -Check (only list)
     setup-ci Add Assert module, example test, GitHub Actions workflow, pre-commit hook, .gitattributes (no Access)
                -Root <repo root>  -GitInit  -Force
@@ -47,7 +49,7 @@
 #>
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'format', 'serve', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
+    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'format', 'document', 'serve', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
     [string]$Command,
 
     [string]$DbPath,
@@ -90,6 +92,8 @@ param(
     [switch]$GitInit,
     # format
     [switch]$Check,
+    # document
+    [string]$Out,
     # snapshot
     [string[]]$Reports,
     [switch]$Update,
@@ -214,6 +218,7 @@ switch ($Command) {
     }
     'lint' { if ($Files) { $P.files = @(Split-List $Files) } }
     'format' { if ($Files) { $P.files = @(Split-List $Files) }; $P.check = [bool]$Check }
+    'document' { if ($Out) { $P.out = $Out } }
     'setup-ci' { $P.root = $Root; $P.force = [bool]$Force; $P.gitInit = [bool]$GitInit }
     'snapshot' {
         if ($Reports) { $P.reports = @(Split-List $Reports) }
@@ -246,6 +251,11 @@ function Write-TextResult($res) {
             if ($gha) { Write-Output ("::{0} file={1},line={2},title={3}::{4}" -f $(switch ($p.severity) { 'error' { 'error' } 'info' { 'notice' } default { 'warning' } }), $file, $p.line, $p.rule, $p.message) }
         }
         Write-Output ("lint: {0} error(s), {1} warning(s), {2} info / {3} files" -f $res.result.errorCount, $res.result.warningCount, [int]$res.result.infoCount, $res.result.files)
+        return
+    }
+    if ($res.command -eq 'document' -and $res.result) {
+        $c = $res.result.counts
+        Write-Output ("document: {0}  (tables {1}, queries {2}, forms {3}, reports {4}, modules {5}; notes kept {6})" -f $res.result.index, $c.tables, $c.queries, $c.forms, $c.reports, $c.modules, $res.result.notesKept)
         return
     }
     if ($res.command -eq 'format' -and $res.result) {

@@ -900,6 +900,7 @@ async function cmdMenu() {
     { label: '$(settings) 帳票のページ設定', cmd: 'accessVsc.pageSetup' },
     { label: '$(git-compare) 同期状態を表示', cmd: 'accessVsc.status' },
     { label: '$(link-external) Access で開く', cmd: 'accessVsc.openInAccess' },
+    { label: '$(book) 構造をドキュメント化', cmd: 'accessVsc.document' },
     { label: '$(database) データベースを選択', cmd: 'accessVsc.selectDatabase' },
     { label: '$(sparkle) AI エージェント連携を設定', cmd: 'accessVsc.setupAgent' },
     { label: '$(output) 出力ログを表示', cmd: 'accessVsc.showOutput' },
@@ -937,7 +938,7 @@ Access データベース \`${rel(db)}\` は \`${rel(src)}/\` にテキストと
 | \`tables/*.json\`, \`relationships.json\`, \`references.json\` | テーブル定義・リレーション・VBA 参照設定のスナップショット | **読み取り専用** |
 
 ### 手順
-1. \`access_status\` で同期状態を確認（Access を起動しないので速い）
+1. \`access_status\` で同期状態を確認（Access を起動しないので速い）。初めての DB や、改修の影響範囲を調べるときは \`access_document\` を実行し、生成された \`*.docs/index.md\` と各オブジェクトの「使われているところ」を読む（説明を頼まれたら、各オブジェクトの notes 欄に書く。作り直しても残る）
 2. ソースファイルを編集（新しいファイルを置けば新しいオブジェクトになる）。VBA を書いたら \`access_format\` でインデントを整える
 3. \`access_import\` で取り込み＋コンパイル。コンパイルエラーは \`file\` / \`fileLine\` / \`code\` が返るので、そこを直して再インポート。\`result.verify\` は取り込んだオブジェクトと Public な手続きが DB に本当にあるかの確認結果
 4. \`access_run\`（VBA の Public Function/Sub を実行）、\`access_sql\`（データ確認。既定は読み取り専用）、\`access_eval\` で動作確認
@@ -985,6 +986,7 @@ ${run} export  -DbPath "${dbRel}"${srcArg}
 ${run} test    -DbPath "${dbRel}"${srcArg} -Text                 # -Filter "Test_Tax*"
 ${run} lint    -DbPath "${dbRel}"${srcArg} -Text
 ${run} format  -DbPath "${dbRel}"${srcArg} -Text                 # VBA のインデントを整える（-Check で確認だけ）
+${run} document -DbPath "${dbRel}"${srcArg} -Text                # 構造のドキュメント（*.docs/）
 ${run} layout  -DbPath "${dbRel}"${srcArg} -Report rptSales
 ${run} preview -DbPath "${dbRel}"${srcArg} -Report rptSales      # result.images の PNG を読んで確認
 ${run} pagesetup -DbPath "${dbRel}"${srcArg} -Report rptSales -PaperSize A4 -Orientation landscape -Margins "10,10,15,15"
@@ -1238,6 +1240,28 @@ function applyLint(res) {
     byFile.get(file).push(d);
   }
   for (const [file, list] of byFile) lintDiagnostics.set(vscode.Uri.file(file), list);
+}
+
+// データベースの構造をドキュメント化（取り出したソースから。Access は使わない）
+async function cmdDocument() {
+  const db = await getDb(true);
+  if (!db) return;
+  if (!fs.existsSync(srcFor(db))) {
+    vscode.window.showInformationMessage('先に「Access から取り出す」を実行してください（取り出したファイルからドキュメントを作ります）。');
+    return;
+  }
+  const res = await access('document', {}, { db, title: '構造のドキュメントを作成中...' });
+  if (!res || !res.ok) return report(res, () => '');
+  await vscode.commands.executeCommand('markdown.showPreview', vscode.Uri.file(res.result.index));
+  const empty = (res.result.emptyNotes || []).length;
+  const c = await vscode.window.showInformationMessage(
+    `構造のドキュメントを作りました（${relToWorkspace(res.result.outDir)}）。各オブジェクトの「説明」欄に書いた内容は、作り直しても残ります。${empty ? `未記入の説明欄: ${empty} 件。` : ''}`,
+    'AI への頼み方をコピー'
+  );
+  if (c) {
+    await vscode.env.clipboard.writeText(`${relToWorkspace(res.result.outDir)} のドキュメントの「説明」欄（<!-- notes:... --> と <!-- /notes --> の間）を、ソース（${relToWorkspace(srcFor(db))}）を読んで埋めて。業務での役割・使われ方・注意点を短く。わからないことは推測せず「要確認」と書いて。終わったら access_document で作り直して、説明が残っていることを確認して。`);
+    vscode.window.showInformationMessage('AI への頼み方をクリップボードにコピーしました。AI のチャットに貼り付けてください。');
+  }
 }
 
 async function cmdLint(quiet) {
@@ -1627,6 +1651,7 @@ class ActionsProvider {
         action('データを見る', 'SQL を実行', 'table', 'accessVsc.runSql'),
         action('コンパイルする', 'VBA の文法チェック', 'check-all', 'accessVsc.compile'),
         action('Access で開く', '', 'link-external', 'accessVsc.openInAccess', [], 'Access の画面で開きます。開いている間は「反映する」ができないので、終わったら閉じてください。'),
+        action('構造をドキュメント化', 'ER 図・対応表', 'book', 'accessVsc.document', [], 'テーブル・クエリ・フォーム・レポート・VBA の構造と、どこで何が使われているかを Markdown にまとめます（Access 不要）。'),
       ]),
       group('テスト・品質', [
         action('テストを実行', 'VBA のユニットテスト', 'beaker', 'accessVsc.runTests', [], 'Test_ で始まる Public Sub をすべて実行します。DB のコピーで実行するので、元のデータは変わりません。'),
@@ -1900,6 +1925,7 @@ function activate(context) {
 
   reg('accessVsc.runTests', cmdRunTests);
   reg('accessVsc.lint', () => cmdLint(false));
+  reg('accessVsc.document', cmdDocument);
   reg('accessVsc.setupCi', cmdSetupCi);
   reg('accessVsc.snapshot', cmdSnapshot);
   reg('accessVsc.snapshotAccept', cmdSnapshotAccept);

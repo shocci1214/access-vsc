@@ -14,6 +14,7 @@ $script:ScriptDir = $PSScriptRoot
 . (Join-Path $script:ScriptDir 'AccessVsc.Common.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Lint.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Format.ps1')
+. (Join-Path $script:ScriptDir 'AccessVsc.Document.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Setup.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Release.ps1')
 
@@ -490,7 +491,7 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
     $res = [ordered]@{ ok = $false; command = $Command }
     $mutex = $null
     try {
-        if ($Command -in @('lint', 'format')) {
+        if ($Command -in @('lint', 'format', 'document')) {
             # Access も DB ファイルも不要（CI のクラウド実行環境でも動く）
             if ($P.src -and -not $P.db) { $src = [System.IO.Path]::GetFullPath($(if ([System.IO.Path]::IsPathRooted($P.src)) { $P.src } else { Join-Path (Get-Location).Path $P.src })) }
             else {
@@ -501,6 +502,13 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
             }
             if (-not (Test-Path -LiteralPath $src)) { throw "Source folder not found: $src" }
             $res.source = $src
+            if ($Command -eq 'document') {
+                $out = $null
+                if ($P.out) { $out = [System.IO.Path]::GetFullPath($(if ([System.IO.Path]::IsPathRooted([string]$P.out)) { [string]$P.out } else { Join-Path (Get-Location).Path ([string]$P.out) })) }
+                $res.result = Invoke-SourceDocument $src $out
+                $res.ok = $true
+                return $res
+            }
             if ($Command -eq 'format') {
                 $res.result = Invoke-SourceFormat $src $(if ($P.files) { @($P.files) } else { $null }) ([bool]$P.check)
                 $res.ok = -not ($P.check -and $res.result.changed.Count)

@@ -47,6 +47,7 @@
     <li><a href="#errors">エラーと対処</a></li>
     <li><a href="#limits">動作環境と制限</a></li>
     <li><a href="#security">セキュリティ</a></li>
+    <li><a href="#document">構造のドキュメント</a></li>
     <li><a href="#ai">AI 連携・MCP ツール</a></li>
     <li><a href="#cli">コマンドライン（CLI）</a></li>
     <li><a href="#glossary">用語集</a></li>
@@ -58,7 +59,7 @@
   <div class="kind">REFERENCE</div>
   <h1>リファレンス</h1>
   <p>ボタン・コマンド・設定・ファイルの書き方・エラーなどの一覧です。<kbd>Ctrl</kbd>+<kbd>F</kbd> で探してください。使い方を順に覚えたいときは<a href="tutorial.html">チュートリアル</a>、考え方を学ぶときは<a href="course.html">学習コース</a>へ。</p>
-  <div class="meta"><span class="pill">拡張機能 v0.8.0</span></div>
+  <div class="meta"><span class="pill">拡張機能 v0.9.0</span></div>
 </header>
 
 <!-- =========================================================== -->
@@ -194,6 +195,7 @@
     <tr><td>Access: 最新の状態に更新</td><td>サイドバーなどを更新</td></tr>
     <tr><td>Access: テストを実行（VBA ユニットテスト）</td><td>テストをすべて実行</td></tr>
     <tr><td>Access: コードチェック（lint）</td><td>ソース全体をチェック</td></tr>
+    <tr><td>Access: 構造をドキュメント化（ER 図・対応表）</td><td>取り出したソースから <code>データベース名.docs/</code> に Markdown を作り、プレビューで開く（Access 不要）</td></tr>
     <tr><td>Access: テスト・CI/CD を準備（Assert / GitHub Actions / コミット前チェック）</td><td>テストと CI の準備</td></tr>
     <tr><td>Access: 帳票の見た目を比較（スナップショット）</td><td>基準画像と比較</td></tr>
     <tr><td>Access: この見た目を基準にする（スナップショット更新）</td><td>今の見た目を基準画像にする</td></tr>
@@ -249,6 +251,7 @@
 <pre><code>C:\work\shop\
   shop.accdb                   データベース本体
   shop.accdb.src\              ソースフォルダ（git で管理する）
+  shop.accdb.docs\             構造のドキュメント（「構造をドキュメント化」で作る。git で管理してよい）
     modules\   *.bas *.cls     標準モジュール / クラスモジュール
     forms\     *.txt           フォーム
     reports\   *.txt           レポート
@@ -500,6 +503,25 @@
   </ul>
 </section>
 
+<section id="document">
+  <h2>構造のドキュメント</h2>
+  <p>「構造をドキュメント化」（CLI は <code>document</code>、AI は <code>access_document</code>）で、取り出したソースから <code>データベース名.docs/</code> に Markdown を作ります。Access は使わないので、すぐに終わり、CI でも動きます。</p>
+  <div class="table-wrap"><table>
+    <tr><th>ファイル</th><th>内容</th></tr>
+    <tr><td><code>index.md</code></td><td>概要（数）、テーブルの関係（ER 図。Mermaid）、オブジェクト一覧と使われているところ</td></tr>
+    <tr><td><code>tables.md</code></td><td>項目・型・サイズ・必須・主キー／外部キー・インデックス・参照関係・件数・リンクテーブルか</td></tr>
+    <tr><td><code>queries.md</code></td><td>種類（選択・更新系・クロス集計）、元にしているもの、SQL</td></tr>
+    <tr><td><code>forms.md</code></td><td>元データ、コントロール（種類・セクション・コントロールソース・値集合ソース・イベント）、コードの手続きと「どのコントロールのどのイベントで動くか」</td></tr>
+    <tr><td><code>reports.md</code></td><td>元データ、グループ（並べ替え・ヘッダー／フッター）、コントロール、コードの手続き</td></tr>
+    <tr><td><code>modules.md</code></td><td>手続きの一覧（宣言・直前のコメント＝説明）と、呼ばれているところ</td></tr>
+  </table></div>
+  <ul>
+    <li><b>対応表</b>：それぞれのオブジェクトに「使っているもの」「使われているところ」が出ます。改修の影響範囲を調べるときに使います。名前が出てくるかどうかで調べるため、コメントの中は数えず、コードで組み立てた名前（<code>"tbl" &amp; x</code> など）は見つかりません。クエリやコントロールの式の中では、<code>名前(</code> の形だけを手続きの呼び出しと数えます</li>
+    <li><b>説明欄</b>：各オブジェクトの <code>&lt;!-- notes:種類:名前 --&gt;</code> と <code>&lt;!-- /notes --&gt;</code> の間に書いた内容は、作り直しても残ります。AI に「説明欄を埋めて」と頼むこともできます（「構造をドキュメント化」の後に出る［AI への頼み方をコピー］）</li>
+    <li>ER 図は Mermaid で書いています。GitHub ではそのまま図になります。VS Code のプレビューで図にするには、Mermaid に対応した拡張機能（例：Markdown Preview Mermaid Support）を入れてください</li>
+  </ul>
+</section>
+
 <section id="ai">
   <h2>AI 連携・MCP ツール</h2>
   <h3>AI エージェント連携を設定 で作られるもの</h3>
@@ -529,6 +551,7 @@
     <tr><td><code>access_test</code></td><td>テスト</td><td><code>filter</code></td></tr>
     <tr><td><code>access_lint</code></td><td>コードチェック</td><td>—</td></tr>
     <tr><td><code>access_format</code></td><td>VBA のインデントを整える（空白だけ変更）</td><td><code>files</code>, <code>check</code></td></tr>
+    <tr><td><code>access_document</code></td><td>構造のドキュメント（ER 図・対応表）を作る。結果に、未記入の説明欄の一覧</td><td><code>out</code></td></tr>
     <tr><td><code>access_report_snapshot</code></td><td>帳票の見た目の比較（差分画像を返す）</td><td><code>reports</code>, <code>update</code>, <code>threshold</code></td></tr>
     <tr><td><code>access_setup_ci</code></td><td>テスト・CI の準備</td><td><code>root</code>, <code>gitInit</code>, <code>force</code></td></tr>
     <tr><td><code>access_build</code></td><td>リリース作成（<b>配布はできない</b>）</td><td><code>version</code></td></tr>
@@ -558,6 +581,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File $A &lt;コマンド&gt; -DbP
     <tr><td><code>serve</code></td><td>常駐して、1 行 1 リクエストの JSON（<code>{"id":1,"command":"run","params":{"db":"…","function":"F"}}</code>）を処理する。Access を開いたままにして使い回す（VS Code 拡張が使う）</td><td>環境変数 <code>ACCESSVSC_SESSION_IDLE</code>（秒）・<code>ACCESSVSC_SESSION=0</code>（開いたままにしない）</td></tr>
     <tr><td><code>lint</code></td><td>コードチェック（Access・DB 不要）</td><td><code>-Src ソースフォルダ</code></td></tr>
     <tr><td><code>format</code></td><td>VBA のインデントを整える（Access・DB 不要）</td><td><code>-Files</code>, <code>-Check</code>（確認だけ。整っていないファイルがあると失敗）</td></tr>
+    <tr><td><code>document</code></td><td>構造のドキュメント（Access・DB 不要）</td><td><code>-Out フォルダ</code>（既定：データベース名.docs）</td></tr>
     <tr><td><code>snapshot</code></td><td>帳票の見た目の比較</td><td><code>-Reports "rpt*"</code>, <code>-Update</code>, <code>-Threshold 0.1</code>, <code>-Tolerance 32</code>, <code>-Pages 5</code>, <code>-Summary</code></td></tr>
     <tr><td><code>setup-ci</code></td><td>テスト・CI の準備</td><td><code>-Root</code>, <code>-GitInit</code>, <code>-Force</code></td></tr>
     <tr><td><code>deploy-init</code></td><td>配布の設定</td><td><code>-AppName</code>, <code>-DeployTo</code>, <code>-BackendPath</code>, <code>-Force</code></td></tr>

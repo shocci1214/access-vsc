@@ -30,6 +30,7 @@ try {
     $r = Acc export; Check 'export' ($r.ok -and $r.result.objects -ge 6) $r
     $r = Acc export; Check 'export is stable' ($r.ok -and @($r.result.written).Count -eq 0) $r
     $r = Acc status; Check 'status clean' ($r.ok -and @($r.result.changed).Count -eq 0) $r
+    $r = Acc document; Check 'document (test db)' ($r.ok -and (Test-Path $r.result.index) -and $r.result.counts.tables -ge 1) $r
 
     Put 'modules/modE2E.bas' "Option Compare Database`r`nOption Explicit`r`n`r`nPublic Function E2E() As Long`r`n    E2E = missingVar`r`nEnd Function`r`n"
     $r = Acc export; Check 'export refuses with unimported changes' (-not $r.ok -and @($r.result.unimported) -contains 'modules/modE2E.bas') $r
@@ -156,7 +157,16 @@ try {
         & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here '..\scripts\New-SampleDatabase.ps1') -Path $db | Out-Null
         $r = Acc export; Check 'sample export' ($r.ok -and (Test-Path (Join-Path $src 'forms\frmOrder.txt')) -and (Test-Path (Join-Path $src 'reports\rptReceipt.txt'))) $r
         $r = Acc lint; Check 'sample lint clean' ($r.ok -and $r.result.errorCount -eq 0 -and $r.result.warningCount -eq 0 -and [int]$r.result.infoCount -eq 0) $r.result.problems
-        $r = Acc run @('-Function', 'PickOfTheDay', '-ArgsJson', "['2026/04/01']"); Check 'sample lucky menu' ($r.ok -and $r.result.value -eq '【中吉】今日のラッキーメニューは「カフェラテ」！') $r
+        $r = Acc document
+        $docDir = $r.result.outDir
+        $tablesMd = if ($docDir) { [IO.File]::ReadAllText((Join-Path $docDir 'tables.md')) } else { '' }
+        $formsMd = if ($docDir) { [IO.File]::ReadAllText((Join-Path $docDir 'forms.md')) } else { '' }
+        Check 'document: counts' ($r.ok -and $r.result.counts.tables -eq 4 -and $r.result.counts.forms -eq 1 -and $r.result.counts.reports -eq 2 -and $r.result.counts.queries -eq 1) $r.result.counts
+        Check 'document: cross reference' ($tablesMd -match 'qrySalesDetail' -and $formsMd -match 'cmdCalc の Click' -and $formsMd -match 'modCafe\.TaxIncluded') $null
+        $p = Join-Path $docDir 'tables.md'
+        [IO.File]::WriteAllText($p, ([IO.File]::ReadAllText($p) -replace '(<!-- notes:table:Products -->\r?\n)[^\r\n]*', '${1}メニューの一覧（E2E）'), $u8)
+        $r = Acc document
+        Check 'document: notes are kept' ($r.ok -and $r.result.notesKept -eq 1 -and ([IO.File]::ReadAllText($p)) -match 'メニューの一覧（E2E）') $r.result ($r.ok -and $r.result.value -eq '【中吉】今日のラッキーメニューは「カフェラテ」！') $r
         foreach ($m in 'UI.bas', 'Assert.bas') { Copy-Item (Join-Path $here "..\scripts\templates\$m") (Join-Path $src "modules\$m") }
         Put 'modules/Test_OrderForm.bas' "Option Compare Database`r`nOption Explicit`r`n`r`nPublic Sub Test_Takeout()`r`n    UI.OpenForm ""frmOrder""`r`n    UI.TypeText ""cboProduct"", ""カフェラテ""`r`n    UI.TypeText ""txtQty"", ""2""`r`n    UI.Click ""chkTakeout""`r`n    UI.Click ""cmdCalc""`r`n    Assert.AreEqual 1080, UI.Value(""txtTotal"")`r`nEnd Sub`r`n`r`nPublic Sub Test_Lucky()`r`n    UI.OpenForm ""frmOrder""`r`n    UI.Click ""cmdPick""`r`n    Assert.IsTrue UI.Form.lblPick.Caption Like ""【*】*""`r`nEnd Sub`r`n`r`nPublic Sub TestTeardown()`r`n    UI.CloseForm ""frmOrder""`r`nEnd Sub`r`n"
         $r = Acc import; Check 'sample import UI tests' ($r.ok -and $r.result.verify.ok) $r

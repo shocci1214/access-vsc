@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AccessVsc.Runner.ps1')
 
-$script:Version = '0.8.0'
+$script:Version = '0.9.0'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), $utf8)
 $stdout = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput(), $utf8)
@@ -114,6 +114,9 @@ $tools = @(
                 files = [ordered]@{ type = 'array'; items = [ordered]@{ type = 'string' }; description = 'Only these files, relative to the source folder (e.g. "modules/modMain.bas"). Default: all.' }
                 check = [ordered]@{ type = 'boolean'; description = 'Only report which files are not formatted; do not write.' }
             }) @() $false $false)
+    (New-Tool 'access_document' 'Document database structure' 'Write Markdown documentation of the database from the source folder (no Access): index.md (overview, ER diagram in Mermaid, object list), tables.md, queries.md, forms.md (controls, events, which procedure runs on which event), reports.md (groups, controls), modules.md (procedures with doc comments). Every object lists what it uses and where it is used (cross reference by name). Use it to understand an unfamiliar database and to check the impact of a change before editing. Each object has a notes block (<!-- notes:kind:name --> ... <!-- /notes -->): write explanations there; they are kept when the documentation is regenerated. Returns the file paths and the notes that are still empty.' ([ordered]@{
+                out = [ordered]@{ type = 'string'; description = 'Output folder (default: <database>.docs next to the database).' }
+            }) @() $false $false)
     (New-Tool 'access_setup_ci' 'Set up tests and CI' 'Add the Assert module and an example test module to the source folder, copy the tool scripts to tools/access-vsc, and create a GitHub Actions workflow (.github/workflows/access-ci.yml), a pre-commit lint hook and .gitattributes/.gitignore entries. Does not start Access.' ([ordered]@{
                 root    = [ordered]@{ type = 'string'; description = 'Repository root (default: git root of the database folder, or the database folder).' }
                 gitInit = [ordered]@{ type = 'boolean'; description = 'Run git init when the root is not a git repository.' }
@@ -130,7 +133,7 @@ VBA modules are stored in Shift-JIS inside Access: avoid characters that Shift-J
 Report layout work: access_report_layout (positions in twips, 1 cm = 567) -> edit Left/Top/Width/Height/Caption/FontSize... in reports/<name>.txt -> access_import -> access_report_preview to look at the rendered pages and fix until "issues" is empty and the images look right. Paper size / orientation / margins: access_report_pagesetup (they are binary in the text file; do not edit PrtDevMode/PrtMip lines).
 Report visual regression: after changing reports or the code/queries behind them, run access_report_snapshot; if pages changed, look at the diff images and report to the user. Accept (update=true) only intended changes.
 Release: access_build makes the .accde. Never publish (deploy) unless the user explicitly asks; publishing is done from VS Code or the CLI.
-Tests: write Public Sub Test_*() in a standard module (e.g. modules/Test_Tax.bas) using Assert.AreEqual expected, actual -> access_import -> access_test. To test forms like a user (typing, clicking buttons, AfterUpdate/Click events fire), use the UI module: UI.OpenForm "frm", UI.TypeText "txt", "value", UI.Click "cmd", UI.Value("txt"), and UI.CloseForm in TestTeardown. Run access_lint before finishing.
+Tests: write Public Sub Test_*() in a standard module (e.g. modules/Test_Tax.bas) using Assert.AreEqual expected, actual -> access_import -> access_test. To test forms like a user (typing, clicking buttons, AfterUpdate/Click events fire), use the UI module: UI.OpenForm "frm", UI.TypeText "txt", "value", UI.Click "cmd", UI.Value("txt"), and UI.CloseForm in TestTeardown. Run access_lint before finishing. For an unfamiliar database or to check the impact of a change, run access_document and read index.md and the "used by" lists; when asked to document the database, fill the notes blocks in the generated Markdown.
 '@
 
 # ------------------------------------------------------------
@@ -164,6 +167,7 @@ function Invoke-Tool([string]$Name, $A) {
         }
         'access_test' { $cmd = 'test'; if ($A.filter) { $P.filter = @($A.filter) } }
         'access_lint' { $cmd = 'lint' }
+        'access_document' { $cmd = 'document'; if ($A.out) { $P.out = $A.out } }
         'access_format' { $cmd = 'format'; if ($A.files) { $P.files = @($A.files) }; $P.check = [bool]$A.check }
         'access_report_snapshot' {
             $cmd = 'snapshot'

@@ -5,7 +5,7 @@
   テスト: test/format/*.in.bas → *.out.bas（JS 版と共通。test/Test-Format.ps1）
 #>
 
-$script:FmtId = '[A-Za-z_\u0080-￿][\w\u0080-￿]*'
+$script:FmtId = '[A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*'
 $script:FmtOpt = [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
 $script:FmtProc = New-Object regex ("^(?:(?:Public|Private|Friend|Global)\s+)?(?:Static\s+)?(?:Sub|Function|Property\s+(?:Get|Let|Set))\s+$($script:FmtId)\s*\("), $script:FmtOpt
 $script:FmtType = New-Object regex ("^(?:(?:Public|Private)\s+)?(?:Type|Enum)\s+$($script:FmtId)$"), $script:FmtOpt
