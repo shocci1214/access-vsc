@@ -772,13 +772,20 @@ function cmdLink(command, args) {
   return `command:${command}?${encodeURIComponent(JSON.stringify(args || []))}`;
 }
 
+// マスコット「つなぎ」（Webview 用）。mood: normal / happy / worried
+const mascotRoot = () => vscode.Uri.joinPath(ctx.extensionUri, 'media', 'mascot');
+function mascotImg(wv, mood, size = 40) {
+  const src = wv.asWebviewUri(vscode.Uri.joinPath(mascotRoot(), `tsunagi-${mood}.svg`));
+  return `<img class="mascot" src="${src}" width="${size}" height="${Math.round(size * 0.9)}" alt="" style="image-rendering: pixelated; box-shadow: none; background: none; vertical-align: middle; flex: none;">`;
+}
+
 function showPreviewPanel(o, res) {
   const r = res.result || {};
   const dir = r.pdf ? path.dirname(r.pdf) : os.tmpdir();
   if (!previewPanel) {
     previewPanel = vscode.window.createWebviewPanel('accessVsc.preview', 'プレビュー', vscode.ViewColumn.Beside, {
       enableCommandUris: true,
-      localResourceRoots: [vscode.Uri.file(dir)],
+      localResourceRoots: [vscode.Uri.file(dir), mascotRoot()],
     });
     previewPanel.onDidDispose(() => (previewPanel = undefined));
   }
@@ -800,6 +807,7 @@ function showPreviewPanel(o, res) {
  .box { padding: 8px 12px; border-radius: 4px; margin: 8px 0; border-left: 4px solid; }
  .warn { border-color: var(--vscode-editorWarning-foreground); background: var(--vscode-inputValidation-warningBackground); }
  .ok { border-color: var(--vscode-testing-iconPassed, #3c3); background: var(--vscode-editor-inactiveSelectionBackground); }
+ .say { display: flex; gap: 10px; align-items: center; }
  .meta { opacity: .8; font-size: 90%; }
  figure { margin: 16px 0; }
  img { max-width: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
@@ -815,7 +823,7 @@ function showPreviewPanel(o, res) {
  ${o.file ? `<a href="${cmdLink('vscode.open', [vscode.Uri.file(o.file)])}">ソースを開く</a>` : ''}
  ${r.pdf ? `<a href="${cmdLink('accessVsc.openExternalFile', [r.pdf])}">PDF を開く</a>` : ''}
 </div>
-${issues.length ? `<div class="box warn"><b>レイアウトの問題 ${issues.length} 件</b><ul>${issues.map((i) => `<li>${escHtml(i)}</li>`).join('')}</ul></div>` : '<div class="box ok">レイアウトの問題は見つかりませんでした。</div>'}
+${issues.length ? `<div class="box warn say">${mascotImg(wv, 'worried')}<div><b>レイアウトの問題 ${issues.length} 件</b><ul>${issues.map((i) => `<li>${escHtml(i)}</li>`).join('')}</ul></div></div>` : `<div class="box ok say">${mascotImg(wv, 'happy')}<div>レイアウトの問題は見つかりませんでした。</div></div>`}
 ${(res.warnings || []).map((w) => `<div class="box warn">${escHtml(w)}</div>`).join('')}
 ${imgs || '<p>画像を作成できませんでした。「PDF を開く」で確認してください。</p>'}
 </body></html>`;
@@ -1378,7 +1386,7 @@ async function cmdSnapshotAccept(arg) {
 
 function showSnapshotPanel(db, res) {
   const r = res.result;
-  const roots = [vscode.Uri.file(path.join(path.dirname(db), '.accessvsc')), vscode.Uri.file(r.baselineDir || srcFor(db))];
+  const roots = [vscode.Uri.file(path.join(path.dirname(db), '.accessvsc')), vscode.Uri.file(r.baselineDir || srcFor(db)), mascotRoot()];
   if (!snapshotPanel) {
     snapshotPanel = vscode.window.createWebviewPanel('accessVsc.snapshot', '帳票の見た目', vscode.ViewColumn.Active, { enableCommandUris: true, localResourceRoots: roots });
     snapshotPanel.onDidDispose(() => (snapshotPanel = undefined));
@@ -1420,10 +1428,10 @@ function showSnapshotPanel(db, res) {
  figure.none div { height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--vscode-panel-border); opacity: .6; }
  figcaption { font-size: 85%; opacity: .75; margin-top: 4px; }
  .msg { opacity: .8; }
- .top { margin: 12px 0; }
+ .top { margin: 12px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 </style></head><body>
 <h2>帳票の見た目（スナップショット）</h2>
-<div class="top">同じ ${s.same} / 変化あり ${s.changed} / 基準なし ${s.new} / 更新 ${s.updated} / エラー ${s.errors}
+<div class="top">${mascotImg(wv, s.changed || s.errors ? 'worried' : s.new ? 'normal' : 'happy')}<span>${s.changed || s.errors ? '見た目が変わった帳票があります。' : s.new ? '基準がまだない帳票があります。' : 'すべて基準と同じです。'}</span> 同じ ${s.same} / 変化あり ${s.changed} / 基準なし ${s.new} / 更新 ${s.updated} / エラー ${s.errors}
  <a class="btn" href="${cmdLink('accessVsc.snapshot', [])}">もう一度比較</a>
  ${s.changed || s.new ? `<a class="btn" href="${cmdLink('accessVsc.snapshotAccept', [])}">すべて基準にする</a>` : ''}</div>
 ${(res.warnings || []).map((w) => `<p class="msg">⚠ ${escHtml(w)}</p>`).join('')}

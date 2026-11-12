@@ -206,6 +206,11 @@ try {
             $r = Acc compile; Check 'serve: other process can write (session released)' ($r.ok) $r
             $r3 = & $serve 'run' @{ function = 'TaxIncluded'; args = @(99, $true) }
             Check 'serve: session reopens after release' ($r3.ok -and $r3.result.value -eq 106 -and $r3.session) $r3
+            # 開いたままの Access があっても、同じ DB を別の Access で開く操作（スナップショット）が動く
+            $sn = & $serve 'snapshot' @{ update = $true }
+            Check 'serve: snapshot works while session is open' ($sn.ok -and $sn.result.summary.errors -eq 0 -and $sn.result.summary.updated -eq 2) $sn.result.summary
+            $r4 = & $serve 'run' @{ function = 'TaxIncluded'; args = @(500, $true) }
+            Check 'serve: session again after snapshot' ($r4.ok -and $r4.result.value -eq 540) $r4
         }
         finally {
             $hin.Close()

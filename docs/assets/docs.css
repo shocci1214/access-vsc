@@ -94,7 +94,15 @@ ol.steps > li > b:first-child { display: block; font-size: 17px; }
 /* チュートリアル：ゴール・確認ポイント */
 .goalbox { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin: 12px 0 18px; }
 .goalbox b { color: var(--accent); }
-.check { border: 2px dashed var(--tip); border-radius: 10px; padding: 10px 16px; margin: 16px 0; }
+.check { border: 2px dashed var(--tip); border-radius: 10px; padding: 10px 16px 10px 64px; margin: 16px 0; position: relative; min-height: 44px; }
+.check::after { content: ""; position: absolute; left: 14px; top: 12px; width: 40px; height: 36px; background: url("../images/tsunagi-happy.svg") no-repeat center / contain; image-rendering: pixelated; }
+/* マスコット「つなぎ」 */
+.mascot { image-rendering: pixelated; flex: none; }
+header.hero.with-mascot { display: flex; gap: 24px; align-items: center; }
+header.hero.with-mascot > div { flex: 1; min-width: 0; }
+.say { display: flex; gap: 14px; align-items: flex-start; }
+.say .bubble { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+.say .bubble::before { content: ""; position: absolute; left: -8px; top: 18px; border: 8px solid transparent; border-left: 0; border-right-color: var(--border); }
 .check::before { content: "✔ ここまでできたら OK"; display: block; font-weight: 700; color: var(--tip); margin-bottom: 4px; }
 details.trouble { border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; margin: 12px 0; background: var(--surface); }
 details.trouble summary { cursor: pointer; font-weight: 600; color: var(--warn); }
@@ -156,6 +164,7 @@ dl.glossary dd { margin: 2px 0 0 0; color: var(--muted); }
   nav.toc ol ol { display: none; }
   main { padding: 20px 16px 100px; }
   header.hero { padding: 20px 18px; }
+  header.hero.with-mascot { flex-direction: column-reverse; align-items: flex-start; gap: 12px; }
   header.hero h1 { font-size: 24px; }
   h2 { font-size: 21px; }
   .cmp { grid-template-columns: minmax(0, 1fr); }

@@ -20,7 +20,7 @@ $include = @('package.json', 'extension.js', 'vba-language.js', 'vba-format.js',
     @(Get-ChildItem (Join-Path $root 'syntaxes') -File | ForEach-Object { "syntaxes/$($_.Name)" }) +
     @(Get-ChildItem (Join-Path $root 'scripts') -File -Recurse | ForEach-Object { $_.FullName.Substring($root.Length + 1).Replace('\', '/') }) +
     @(Get-ChildItem (Join-Path $root 'media') -File -Recurse | ForEach-Object { $_.FullName.Substring($root.Length + 1).Replace('\', '/') }) +
-    @(Get-ChildItem (Join-Path $root 'docs') -File -Recurse | Where-Object { $_.Extension -in '.html', '.png', '.css', '.js' } | ForEach-Object { $_.FullName.Substring($root.Length + 1).Replace('\', '/') })
+    @(Get-ChildItem (Join-Path $root 'docs') -File -Recurse | Where-Object { $_.Extension -in '.html', '.png', '.svg', '.css', '.js' } | ForEach-Object { $_.FullName.Substring($root.Length + 1).Replace('\', '/') })
 
 function Esc([string]$s) { return [System.Security.SecurityElement]::Escape($s) }
 
@@ -41,6 +41,7 @@ $manifest = @"
       <Property Id="Microsoft.VisualStudio.Code.ExtensionKind" Value="workspace" />
       <Property Id="Microsoft.VisualStudio.Code.LocalizedLanguages" Value="" />
     </Properties>
+    <Icon>extension/media/icon.png</Icon>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Code" />
@@ -49,6 +50,7 @@ $manifest = @"
   <Assets>
     <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
     <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
+    <Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/media/icon.png" Addressable="true" />
   </Assets>
 </PackageManifest>
 "@

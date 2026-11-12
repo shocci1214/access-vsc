@@ -568,6 +568,9 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
         }
         # セッション（開いたままの Access）を使うのは、ほかに使っている人がいないときだけ
         $useSession = [bool]$P.session -and $Command -in $script:SessionOps -and ($lock -eq 'none' -or ($lock -eq 'session' -and $script:Session -and $script:Session.db -eq $db))
+        # 同じ DB を別の Access で開く操作（帳票スナップショットなど）の前に、開いたままの Access を閉じる。
+        # テスト・ビルド・配布は DB のコピーを使うので閉じなくてよい
+        if (-not $useSession -and $script:Session -and $script:Session.db -eq $db -and $Command -notin @('test', 'build', 'deploy')) { Close-AccessSession }
 
         if ($Command -in @('snapshot', 'build', 'deploy')) {
             # 複数回 Access を使う処理（AccessVsc.Release.ps1）
