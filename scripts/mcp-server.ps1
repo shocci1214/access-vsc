@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AccessVsc.Runner.ps1')
 
-$script:Version = '0.6.0'
+$script:Version = '0.7.0'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), $utf8)
 $stdout = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput(), $utf8)
@@ -130,7 +130,7 @@ VBA modules are stored in Shift-JIS inside Access: avoid characters that Shift-J
 Report layout work: access_report_layout (positions in twips, 1 cm = 567) -> edit Left/Top/Width/Height/Caption/FontSize... in reports/<name>.txt -> access_import -> access_report_preview to look at the rendered pages and fix until "issues" is empty and the images look right. Paper size / orientation / margins: access_report_pagesetup (they are binary in the text file; do not edit PrtDevMode/PrtMip lines).
 Report visual regression: after changing reports or the code/queries behind them, run access_report_snapshot; if pages changed, look at the diff images and report to the user. Accept (update=true) only intended changes.
 Release: access_build makes the .accde. Never publish (deploy) unless the user explicitly asks; publishing is done from VS Code or the CLI.
-Tests: write Public Sub Test_*() in a standard module (e.g. modules/Test_Tax.bas) using Assert.AreEqual expected, actual -> access_import -> access_test. Run access_lint before finishing.
+Tests: write Public Sub Test_*() in a standard module (e.g. modules/Test_Tax.bas) using Assert.AreEqual expected, actual -> access_import -> access_test. To test forms like a user (typing, clicking buttons, AfterUpdate/Click events fire), use the UI module: UI.OpenForm "frm", UI.TypeText "txt", "value", UI.Click "cmd", UI.Value("txt"), and UI.CloseForm in TestTeardown. Run access_lint before finishing.
 '@
 
 # ------------------------------------------------------------

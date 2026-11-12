@@ -231,6 +231,7 @@ const BUILTINS = {
   IsNull: 'Null かどうか', IsEmpty: '未初期化の Variant かどうか', IsNumeric: '数値として扱えるかどうか', IsDate: '日付として扱えるかどうか',
   Now: '現在の日時', Date: '今日の日付', Time: '現在の時刻',
   Assert: 'Access VSC のテスト用モジュール。Assert.AreEqual 期待値, 実際 など',
+  UI: 'Access VSC のフォーム操作テスト用モジュール。UI.OpenForm \"frm\" / UI.TypeText \"txt\", \"値\" / UI.Click \"cmd\" / UI.Value(\"txt\")。キーボードで操作するのでイベントも動く',
 };
 const KEYWORDS = ['Dim', 'As', 'If', 'Then', 'Else', 'ElseIf', 'End If', 'For', 'To', 'Step', 'Next', 'For Each', 'In', 'Do', 'Loop', 'While', 'Wend', 'Until', 'Select Case', 'Case', 'End Select', 'With', 'End With', 'Exit Sub', 'Exit Function', 'On Error GoTo', 'On Error Resume Next', 'Resume', 'Set', 'Nothing', 'Not', 'And', 'Or', 'True', 'False', 'Null', 'ByVal', 'ByRef', 'Optional', 'Public', 'Private', 'Const', 'Long', 'Integer', 'String', 'Currency', 'Double', 'Boolean', 'Date', 'Variant', 'Object'];
 

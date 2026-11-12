@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>チュートリアル 中級編：改修案件 - Access VSC</title>
+<meta name="description" content="カフェの注文画面の不具合修正、レシートのインボイス対応、AI への改修依頼を通して、フォームと帳票の改修を体験する中級編。">
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+<div class="topnav"><div class="in">
+  <a class="brand" href="index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5" rx="7" ry="2.6"/><path d="M3 5v13c0 1.4 3.1 2.6 7 2.6"/><path d="M17 5v4"/><path d="M3 11.5c0 1.4 3.1 2.6 7 2.6"/><path d="M13.5 21l3.5-9 3.5 9"/><path d="M14.8 18h4.4"/></svg><span>Access VSC</span></a>
+  <a class="tab" href="index.html">ホーム</a>
+  <a class="tab on" href="tutorial.html">チュートリアル</a>
+  <a class="tab" href="course.html">学習コース</a>
+  <a class="tab" href="reference.html">リファレンス</a>
+  <span class="sp"></span><button type="button" data-theme-toggle>ライト / ダーク</button>
+</div></div>
+
+<div class="layout">
+<nav class="toc" aria-label="目次">
+  <div class="h">中級編</div>
+  <ol>
+    <li><a href="#m0">0. 準備と最初の記録</a></li>
+    <li><a href="#m1">案件 1. 税率の不具合</a></li>
+    <li><a href="#m2">案件 1+. 自動で再計算</a></li>
+    <li><a href="#m3">案件 2. インボイス対応</a></li>
+    <li><a href="#m4">案件 3. AI に頼む</a></li>
+    <li><a href="#m5">5. ふり返り</a></li>
+  </ol>
+  <div class="h">ほかの編</div>
+  <ol>
+    <li><a href="tutorial-basic.html">初級編：基本操作</a></li>
+    <li><a href="tutorial-advanced.html">上級編：自動テストと CI/CD</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kind">TUTORIAL ・ 中級編</div>
+  <h1>中級編：店長からの改修依頼</h1>
+  <p>カフェ「こもれび」の店長から、3 件の依頼が届きました。フォームのコード（イベント）と、帳票のレイアウト（項目の追加・位置・セクションの高さ）を直す、実際の改修案件に近い流れを体験します。</p>
+  <div class="meta"><span class="pill">60〜90 分</span><span class="pill">前提：<a href="tutorial-basic.html">初級編</a>の操作がわかること</span></div>
+</header>
+
+<div class="callout note"><b>店長からの依頼</b>
+  <ol style="margin:4px 0 0">
+    <li>「テイクアウトにチェックしても、税込金額が 10% のまま。持ち帰りは 8% のはず！」</li>
+    <li>「インボイス制度に対応したレシートにしてほしい。税率ごとの金額と消費税、登録番号を印字して」</li>
+    <li>「月次売上表のいちばん下に、全体の合計がほしい」</li>
+  </ol>
+</div>
+
+<!-- ====================================================== -->
+<section id="m0">
+  <h2>0. 準備と最初の記録 <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>新しいサンプルを用意し、改修前の状態を git に記録する。</div>
+  <ol class="steps">
+    <li><b>練習用サンプルを作る</b>Access アイコン →「その他」→「練習用サンプルを作る」。初級編で作ったものがあれば「新しく作る」を選びます（<code>AccessVSC-練習2</code> などができます）。「開く」で新しいウィンドウに切り替えます。</li>
+    <li><b>「① Access から取り出す」</b></li>
+    <li><b>改修前の状態を記録する</b>左の［ソース管理］（枝分かれのアイコン）→［リポジトリを初期化する］。上の入力欄に「改修前」と書いて［コミット］（「変更をステージしますか？」と聞かれたら［はい］）。<br>これで、後から「どこを変えたか」を比べたり、元に戻したりできます。</li>
+  </ol>
+  <div class="check">［ソース管理］の変更の一覧が空になった（すべて記録された）。</div>
+  <details class="trouble"><summary>うまくいかないとき</summary>
+    <ul>
+      <li>「git が見つかりません」 → <a href="https://git-scm.com/download/win">Git for Windows</a> をインストールして VS Code を再起動</li>
+      <li>コミットで名前とメールアドレスを聞かれた → ターミナルで <code>git config --global user.name "山田 太郎"</code> と <code>git config --global user.email "you@example.com"</code> を実行</li>
+    </ul>
+  </details>
+</section>
+
+<!-- ====================================================== -->
+<section id="m1">
+  <h2>案件 1. テイクアウトの税率が 10% のまま <span class="pill">15 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>フォームのコードの不具合を見つけて直し、Access の画面で確かめる。</div>
+  <h3>まず再現する</h3>
+  <ol class="steps">
+    <li><b>「確認する」→「Access で開く」→ <code>frmOrder</code> を開く</b>商品「カフェラテ」、数量 <code>2</code>、テイクアウトにチェック →「計算」。税込金額が <b>1,100</b>（10%）です。正しくは 1,000 × 1.08 = <b>1,080</b>。</li>
+    <li><b>Access を閉じる</b>開いたままだと反映できません。</li>
+  </ol>
+  <h3>原因を探す</h3>
+  <ol class="steps">
+    <li><b><code>frmOrder</code> のファイルを開き、<kbd>Ctrl</kbd>+<kbd>F</kbd> で <code>CodeBehindForm</code> を探す</b>そこから下が画面の VBA です。「計算」ボタンを押すと <code>cmdCalc_Click</code> → <code>UpdateTotals</code> が動きます。</li>
+    <li><b><code>UpdateTotals</code> の最後の行を見る</b>
+<pre><code>    Me.txtTotal = TaxIncluded(Me.txtSubtotal, False)</code></pre>
+      <code>TaxIncluded</code> の 2 つ目の引数は「テイクアウトかどうか」です（<code>modCafe</code> の関数の上にマウスを乗せると説明が出ます）。ここが <code>False</code>（店内）で固定されていました。</li>
+  </ol>
+  <figure class="shot"><a href="images/m01-form-code.png" target="_blank"><img src="images/m01-form-code.png" alt="フォームのコード" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>フォームのファイルの CodeBehindForm 以降。テイクアウトかどうかが False で固定されている。</figcaption></figure>
+  <h3>直して確かめる</h3>
+  <ol class="steps">
+    <li><b>チェックボックスの値を渡すように直して保存</b>
+<pre><code>    Me.txtTotal = TaxIncluded(Me.txtSubtotal, Nz(Me.chkTakeout, False))</code></pre>
+      画面を開いた直後のチェックボックスは「未設定（Null）」なので、<code>Nz</code> で False に置き換えています。</li>
+    <li><b>「③ Access へ反映する」</b>フォームも、VBA と同じように反映できます。</li>
+    <li><b>「Access で開く」で同じ操作をする</b>今度は <b>1,080</b> になります。チェックを外して「計算」すると 1,100 に戻ります。確かめたら Access を閉じます。</li>
+  </ol>
+  <div class="check">テイクアウトで 1,080、店内で 1,100 になった。Access を閉じた。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="m2">
+  <h2>案件 1+. 入力したら自動で計算し直す <span class="pill">15 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>フォームのイベント（更新後処理）をテキストのまま追加する。</div>
+  <p>店長に確認してもらうと、「毎回『計算』を押すのが面倒。数量やテイクアウトを変えたら、すぐ金額が変わってほしい」とのこと。商品・数量・テイクアウトの<b>更新後処理（AfterUpdate）</b>で計算し直すようにします。</p>
+  <p>Access のデザイン画面では、プロパティシートの［イベント］タブで［イベント プロシージャ］を選びますね。テキストでは、<b>コントロールのかたまりに 1 行足す</b>のと、<b>VBA を書く</b>のと、2 か所を直します。</p>
+  <ol class="steps">
+    <li><b>コントロールに「イベントを使う」印を付ける</b><code>frmOrder</code> のファイルで <kbd>Ctrl</kbd>+<kbd>F</kbd> → <code>Name ="cboProduct"</code> を探し、その次の行に 1 行足します（字下げは上の行にそろえる）。
+<pre><code>                    Name ="cboProduct"
+                    AfterUpdate ="[Event Procedure]"</code></pre>
+      同じように <code>Name ="txtQty"</code> と <code>Name ="chkTakeout"</code> の次の行にも足します。</li>
+    <li><b>ファイルのいちばん最後に、3 つのイベントの VBA を書いて保存</b>
+<pre><code>Private Sub cboProduct_AfterUpdate()
+    UpdateTotals
+End Sub
+
+Private Sub txtQty_AfterUpdate()
+    UpdateTotals
+End Sub
+
+Private Sub chkTakeout_AfterUpdate()
+    UpdateTotals
+End Sub</code></pre>
+      名前は「コントロール名_イベント名」の決まりです。</li>
+    <li><b>反映して「Access で開く」</b>商品を選ぶとすぐ金額が出て、数量を変えて Tab を押すと計算し直され、テイクアウトのチェックで税込金額が切り替わります。確かめたら Access を閉じます。</li>
+    <li><b>何を変えたか見る</b>［ソース管理］で <code>frmOrder.txt</code> をクリックすると、改修前と今が左右に並び、足した行が緑で表示されます。「計算の不具合修正と自動再計算」と書いて［コミット］。</li>
+  </ol>
+  <figure class="shot"><a href="images/m02-diff.png" target="_blank"><img src="images/m02-diff.png" alt="変更の比較" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>［ソース管理］で改修前と比べたところ。足した行が緑。</figcaption></figure>
+  <div class="check">「計算」を押さなくても、商品・数量・テイクアウトを変えると金額が変わる。</div>
+  <details class="trouble"><summary>うまくいかないとき</summary>
+    <ul>
+      <li>反映でエラー「…行目の構文が正しくありません」 → 足した行の <code>"</code> や <code>[ ]</code> の抜け、全角の文字が混ざっていないかを確認</li>
+      <li>反映できたのに自動で計算されない → 1 の行（<code>AfterUpdate ="[Event Procedure]"</code>）が足りないコントロールがないか確認。VBA だけ書いても、この印がないとイベントは動きません</li>
+    </ul>
+  </details>
+</section>
+
+<!-- ====================================================== -->
+<section id="m3">
+  <h2>案件 2. レシートをインボイス対応に <span class="pill">25 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>帳票に項目を追加し、レイアウトの問題（セクションの高さ）を直して、プレビューで確かめる。</div>
+  <p>インボイス（適格請求書）では、<b>税率ごとの合計金額と消費税額</b>、<b>登録番号</b>の記載が必要です。消費税は、税率ごとに合計してから 1 回だけ端数を処理します。今のレシートは、合計（税込）しか出ていません。</p>
+  <h3>① 内訳の文字を作る関数</h3>
+  <ol class="steps">
+    <li><b><code>modCafe</code> の最後に関数を足して保存</b>
+<pre><code>' レシートの税率ごとの内訳（インボイス用）。例: 8%対象 960円（消費税 76円）
+Public Function TaxLine(ByVal orderId As Long, ByVal takeout As Boolean) As String
+    Dim amount As Currency
+    amount = Nz(DSum("Amount", "qrySalesDetail", "OrderID=" &amp; orderId &amp; " AND Takeout=" &amp; takeout), 0)
+    TaxLine = Format(TaxRate(takeout), "0%") &amp; "対象 " &amp; Format(amount, "#,##0") &amp; "円（消費税 " &amp; Format(Int(amount * TaxRate(takeout)), "#,##0") &amp; "円）"
+End Function</code></pre>
+      帳票の式を長く書くより、VBA の関数にしておくほうが読みやすく、テストもしやすくなります（上級編でテストします）。</li>
+    <li><b>反映して、<code>TaxLine</code> を <code>1, true</code> で実行</b><b>"8%対象 960円（消費税 76円）"</b>。<code>1, false</code> なら <b>"10%対象 1,530円（消費税 153円）"</b>。注文 No.1 は、店内のパフェ・抹茶ラテと、お持ち帰りのチーズケーキの注文です。</li>
+  </ol>
+  <h3>② 帳票に項目を足す</h3>
+  <p>帳票の項目を増やすときは、<b>似た項目のかたまりを丸ごと複製して</b>、名前・中身・位置を書き換えるのが確実です。</p>
+  <ol class="steps">
+    <li><b>今のレシートを見る</b><code>rptReceipt</code> のプレビュー。1 ページ目が注文 No.1 です。</li>
+    <li><b><code>rptReceipt</code> のファイルで <code>Name ="txtSubtotal"</code> を探す</b>小計（税抜）の金額の項目です。すぐ上の <code>Begin TextBox</code> から、対応する <code>End</code>（<code>LayoutCachedHeight</code> の次の行）までが、1 つの項目のかたまりです。</li>
+    <li><b>かたまりを丸ごとコピーして、その <code>End</code> のすぐ下に貼り付ける</b>貼り付けたほうを、次のように書き換えます。
+      <div class="table-wrap"><table>
+        <tr><th>行</th><th>変更前</th><th>変更後</th><th>意味</th></tr>
+        <tr><td>GUID の 3 行</td><td><code>GUID = Begin</code> 〜 <code>End</code></td><td>（3 行とも削除）</td><td>項目の ID。複製元と同じにしないため</td></tr>
+        <tr><td>Name</td><td><code>"txtSubtotal"</code></td><td><code>"txtTax8"</code></td><td>項目の名前</td></tr>
+        <tr><td>ControlSource</td><td><code>"=Sum([Amount])"</code></td><td><code>"=TaxLine([OrderID],True)"</code></td><td>表示する中身</td></tr>
+        <tr><td>Left</td><td><code>2600</code></td><td><code>100</code></td><td>左端から</td></tr>
+        <tr><td>Width</td><td><code>2100</code></td><td><code>4600</code></td><td>幅（レシートの幅いっぱい）</td></tr>
+        <tr><td>Top</td><td><code>100</code></td><td><code>900</code></td><td>セクションの上端から</td></tr>
+        <tr><td>TextAlign</td><td><code>3</code></td><td><code>1</code></td><td>右寄せ → 左寄せ</td></tr>
+      </table></div>
+      <code>LayoutCached</code> で始まる行は Access が計算し直すので、そのままで大丈夫です。</li>
+    <li><b>10% の行も作る</b>今作った <code>txtTax8</code> のかたまりをもう一度その下に複製し、<code>Name ="txtTax10"</code>、<code>ControlSource ="=TaxLine([OrderID],False)"</code>、<code>Top =1250</code> に変えます。</li>
+    <li><b>登録番号を足す</b><code>Name ="lblTitle"</code>（「領収書」の見出し。<code>Begin Label</code> のかたまり）を丸ごとコピーし、<code>txtTax10</code> のかたまりの下に貼り付けます。GUID の 3 行を消し、<code>Name ="lblRegNo"</code>、<code>Caption ="登録番号 T1234567890123"</code>、<code>Top =1650</code> に変えて保存。</li>
+  </ol>
+  <h3>③ レイアウトの問題を直す</h3>
+  <ol class="steps">
+    <li><b>保存すると、問題パネルに警告が 3 つ出る</b>「txtTax8 の下端 2.17cm がセクションの高さ 1.68cm を超えています」など。足した項目が、合計の入っている<b>セクション（グループフッター）の高さ</b>からはみ出しています。<br>（このまま反映すると Access がセクションを広げてくれますが、意図しない見た目になりやすいので、自分で決めます。）</li>
+    <li><b>セクションの高さを広げる</b><kbd>Ctrl</kbd>+<kbd>F</kbd> で <code>ForceNewPage =2</code> を探します（グループフッターの設定）。すぐ下の <code>Height =950</code> を <code>Height =2100</code> に変えて保存。警告が消えます。</li>
+    <li><b>反映してプレビュー</b>合計の下に、税率ごとの内訳と登録番号が並びます。</li>
+  </ol>
+  <figure class="shot"><a href="images/m03-height-warning.png" target="_blank"><img src="images/m03-height-warning.png" alt="セクションの高さの警告" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>保存したときのコードチェック。足した項目がセクションからはみ出している。</figcaption></figure>
+  <figure class="shot"><a href="images/m04-receipt.png" target="_blank"><img src="images/m04-receipt.png" alt="インボイス対応のレシート" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>インボイス対応後のレシート（注文 No.1）。</figcaption></figure>
+  <div class="check">No.1 のレシートに「8%対象 960円（消費税 76円）」「10%対象 1,530円（消費税 153円）」「登録番号 T1234567890123」が出て、合計（税込）は 2,719。レイアウトの問題の表示がない。</div>
+  <div class="callout tip"><b>（やってみよう）軽減税率の品目に ※ を付ける</b>インボイスでは、軽減税率の品目がわかるようにします。<code>Name ="txtProductName"</code> の <code>ControlSource ="ProductName"</code> を次に変えると、テイクアウトの品目の前に ※ が付きます。
+<pre><code>ControlSource ="=IIf([Takeout],\"※\",\"\") &amp; [ProductName]"</code></pre>
+    帳票のファイルの中では、式の中の <code>"</code> を <code>\"</code> と書きます。</div>
+  <details class="trouble"><summary>うまくいかないとき</summary>
+    <ul>
+      <li>プレビューに「#エラー」 → <code>ControlSource</code> の式の綴り（<code>TaxLine</code>・<code>[OrderID]</code>）と、<code>modCafe</code> を反映したかを確認</li>
+      <li>「重なっています」と出る → <code>Top</code> の値を確認（txtTax8 は 900、txtTax10 は 1250、lblRegNo は 1650）</li>
+      <li>反映でエラーになる → 貼り付けた場所が、別のかたまりの途中になっていないか（<code>End</code> の次の行に貼る）</li>
+    </ul>
+  </details>
+  <p>ここまでできたら「レシートのインボイス対応」で［コミット］しておきましょう。</p>
+</section>
+
+<!-- ====================================================== -->
+<section id="m4">
+  <h2>案件 3. AI に頼む <span class="pill">15 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>AI に改修を頼み、AI が反映・プレビュー・確認まで自分で行う様子を見て、結果をレビューする。</div>
+  <ol class="steps">
+    <li><b>「AI と使う」→「AI エージェント連携を設定」</b>使っている AI（Claude Code・GitHub Copilot・Cursor・Gemini CLI など）を選んで OK。AI への作業手順書（<code>CLAUDE.md</code> など）と、ツールの登録ファイルが作られます。</li>
+    <li><b>AI を開き直す</b>「access」というツールの使用を許可するか聞かれたら［許可］。</li>
+    <li><b>チャットで頼む</b>
+      <div class="callout note"><b>頼み方の例</b>rptMonthlySales のいちばん下に、全体の合計（数量と売上）を追加して。今の小計の行と同じ見た目にして、プレビューで重なりやはみ出しがないことを確認して。</div>
+      AI は、帳票のファイルを編集 → 反映 → プレビューの画像を見て確認 → 問題があれば直す、を自分で繰り返し、結果を報告します。</li>
+    <li><b>AI の報告を確かめる</b>作業手順書には「完了の条件」（反映が成功・プレビューで問題なし など）が書いてあるので、報告に<b>実行した確認とその結果</b>が書かれているはずです。</li>
+    <li><b>レビューする</b>［ソース管理］で変更を見て、自分でもプレビュー。全体の合計が 31 個・18,800 円（デザート 6,800 + ドリンク 8,000 + フード 4,000）になっていれば正解です。よければ［コミット］、だめなら［変更を破棄］で元に戻せます。</li>
+  </ol>
+  <figure class="shot"><a href="images/m05-setup-agent.png" target="_blank"><img src="images/m05-setup-agent.png" alt="AI 連携の設定" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>使う AI を選ぶ画面。</figcaption></figure>
+  <div class="check">月次売上の最後に、全体の合計（31・18,800）が出た。AI の変更をレビューしてコミットした。</div>
+  <div class="callout tip"><b>AI に頼むときのコツ</b>「何を」「どうしたいか」に加えて、<b>「どう確かめるか」</b>（プレビューで確認する、テストを通す、など）まで書くと、AI が自分で確かめてくれます。頼む前にコミットしておくと、気に入らなければすぐ戻せます。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="m5">
+  <h2>5. ふり返り <span class="pill">5 分</span></h2>
+  <div class="table-wrap"><table>
+    <tr><th>案件</th><th>直したところ</th><th>学んだこと</th></tr>
+    <tr><td>税率の不具合</td><td>フォームの VBA（<code>CodeBehindForm</code> 以降）</td><td>フォームのコードもテキストで直せる。Access で開いたら閉じてから反映</td></tr>
+    <tr><td>自動で再計算</td><td>コントロールのかたまりに <code>AfterUpdate</code> の行 + VBA</td><td>イベントは「印」と「プロシージャ」の 2 つがそろって動く</td></tr>
+    <tr><td>インボイス対応</td><td>VBA の関数 + 帳票の項目の複製 + セクションの高さ</td><td>似た項目を複製して書き換える。はみ出しはコードチェックとプレビューが教えてくれる</td></tr>
+    <tr><td>月次売上の合計</td><td>AI に依頼</td><td>確かめ方まで伝える。頼む前にコミットし、変更をレビューする</td></tr>
+  </table></div>
+  <p>手で確かめた「テイクアウトなら 1,080」「No.1 の合計は 2,719」は、毎回 Access で開いて確かめるのは大変です。<a href="tutorial-advanced.html">上級編</a>では、これを<b>自動テスト</b>にします。</p>
+  <div class="next"><a href="tutorial-basic.html">← 初級編</a><a href="tutorial-advanced.html">上級編：自動テストと CI/CD へ →</a></div>
+</section>
+</main>
+</div>
+<a class="back" href="#">▲ 先頭へ</a>
+<script src="assets/docs.js"></script>
+</body>
+</html>

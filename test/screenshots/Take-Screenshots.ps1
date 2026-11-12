@@ -1,5 +1,5 @@
 ﻿<#
-  Take-Screenshots.ps1 — マニュアル（docs/manual.html）用のスクリーンショットを撮り直す。
+  Take-Screenshots.ps1 — チュートリアル（docs/tutorial-*.html）とリファレンス用のスクリーンショットを撮り直す。
     1. 拡張機能（.vsix）と撮影用ドライバーを作る
     2. 普段の VS Code とは別の設定・別の拡張機能フォルダで VS Code を起動（日本語表示）
     3. ドライバーが操作し、場面ごとに docs/images/*.png を保存
@@ -17,7 +17,7 @@ $out = Join-Path $repo 'docs\images'
 $Work = [System.IO.Path]::GetFullPath($Work)
 $ud = Join-Path $Work 'vsc-shot-ud'
 $ext = Join-Path $Work 'vsc-shot-ext'
-$ws = Join-Path $Work 'shop'
+$ws = Join-Path $Work 'cafe'
 $code = (Get-Command code -ErrorAction Stop).Source
 function Invoke-Code {
     # code.cmd は標準エラーに警告を出す。Windows PowerShell 5.1 ではそれがエラー扱いになるので、ここだけ止めない
@@ -81,7 +81,7 @@ Invoke-Code --user-data-dir $ud --extensions-dir $ext --install-extension $drive
 Invoke-Code --user-data-dir $ud --extensions-dir $ext --install-extension MS-CEINTL.vscode-language-pack-ja
 
 # 3) デモ用 DB
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'scripts\New-SampleDatabase.ps1') -Path (Join-Path $ws 'shop.accdb') | Write-Output
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'scripts\New-SampleDatabase.ps1') -Path (Join-Path $ws 'cafe.accdb') | Write-Output
 [ordered]@{
     out     = $out
     capture = (Join-Path $PSScriptRoot 'capture.ps1')

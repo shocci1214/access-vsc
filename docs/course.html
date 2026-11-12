@@ -150,8 +150,8 @@
     <tr><td>何でも探して実行</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>（コマンド パレット）→「Access:」</td><td>メニュー</td></tr>
     <tr><td>変更前と比べる</td><td>［ソース管理］で変更されたファイルをクリック（git 使用時）</td><td>—</td></tr>
   </table></div>
-  <div class="exercise"><b>演習 1</b>チュートリアルのサンプルで、<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> を使って <code>TaxIncluded</code> が使われている場所をすべて探してください。
-    <details class="answer"><summary>解答例</summary><p><code>modTax.bas</code>（定義）と <code>Test_Tax.bas</code>（テスト）が見つかります。フォームやレポートの中（<code>forms/*.txt</code> の <code>CodeBehindForm</code> 以降や、テキストボックスの <code>ControlSource</code>）で使っていれば、それも見つかります。VBE の検索では見つけにくいフォームの式まで一度に探せるのがポイントです。</p></details></div>
+  <div class="exercise"><b>演習 1</b>チュートリアルのサンプル（カフェ こもれび）で、<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> を使って <code>TaxRate</code> が使われている場所をすべて探してください。
+    <details class="answer"><summary>解答例</summary><p><code>modCafe.bas</code> の定義と、<code>TaxIncluded</code> の中で見つかります。中級編のインボイス対応をしていれば <code>TaxLine</code> の中、上級編をしていればテストの中でも見つかります。フォームやレポートの中（<code>forms/*.txt</code> の <code>CodeBehindForm</code> 以降や、テキストボックスの <code>ControlSource</code> の式）で使っていれば、それも一度に見つかるのがポイントです。</p></details></div>
 
   <h3 id="b4">4. エラーと付き合う</h3>
   <div class="table-wrap"><table>
@@ -297,7 +297,8 @@
     <li><b>直したバグ</b>：バグを直す前に「そのバグで失敗するテスト」を書くと、二度と同じバグが出ない</li>
   </ul>
   <h4>テストしやすくするコツ</h4>
-  <p>フォームのボタンの中に計算を直接書くと、テストできません。<b>計算は標準モジュールの関数に切り出し</b>、フォームはそれを呼ぶだけにします（上級「<a href="#a4">直しやすい VBA の設計</a>」）。</p>
+  <p>フォームのボタンの中に計算を直接書くと、テストしにくくなります。<b>計算は標準モジュールの関数に切り出し</b>、フォームはそれを呼ぶだけにします（上級「<a href="#a4">直しやすい VBA の設計</a>」）。</p>
+  <p>そのうえで、<b>画面の動き</b>（ボタンを押すと計算される、チェックを入れると金額が変わる、など）は <code>UI</code> モジュールで確かめます。<code>UI.TypeText</code> や <code>UI.Click</code> はキーボードで操作するのと同じなので、イベントの付け忘れ（<code>AfterUpdate ="[Event Procedure]"</code> がない、など）も見つかります。ただし UI テストは遅く、壊れやすいので、<b>計算の正しさは関数のテスト、画面のつながりは少数の UI テスト</b>、と分けるのがコツです（例：<a href="tutorial-advanced.html#a3">チュートリアル上級編</a>）。</p>
   <h4>データを使うテスト</h4>
 <pre><code>Public Sub TestSetup()          ' 各テストの前に呼ばれる
     CurrentDb.Execute "DELETE FROM Orders", dbFailOnError

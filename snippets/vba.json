@@ -82,7 +82,11 @@
     "body": ["Public Sub Test_${1:Name}()", "    Assert.AreEqual ${2:期待値}, ${3:実際の値}", "End Sub"],
     "description": "Access VSC のテスト（Test_ で始まる引数なしの Public Sub）"
   },
-  "Test setup/teardown (Access VSC)": {
+  "UI test (Access VSC)": {
+    "prefix": ["uitest"],
+    "body": ["Public Sub Test_${1:Name}()", "    UI.OpenForm \"${2:frmName}\"", "    UI.TypeText \"${3:txtInput}\", \"${4:入力}\"", "    UI.Click \"${5:cmdButton}\"", "    Assert.AreEqual ${6:期待値}, UI.Value(\"${7:txtResult}\")", "    UI.CloseForm", "End Sub"],
+    "description": "フォームを操作するテスト（UI モジュール。入力してボタンを押し、結果を確かめる）"
+  },  "Test setup/teardown (Access VSC)": {
     "prefix": ["testsetup"],
     "body": ["Public Sub TestSetup()", "    ' 各テストの前に呼ばれる", "    $0", "End Sub", "", "Public Sub TestTeardown()", "    ' 各テストの後に呼ばれる", "End Sub"],
     "description": "テストの準備と後片付け"

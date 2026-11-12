@@ -147,6 +147,26 @@ try {
         $r = Acc run @('-Function', 'Greet', '-ArgsJson', "['accde']"); Check 'accde runs VBA' ($r.ok -and $r.result.value -eq 'こんにちは、accde') $r
     }
     finally { $db = $dbSaved }
+
+    # 練習用サンプル（カフェ）と UI テスト（チュートリアルの流れ）
+    $dbSaved = $db; $srcSaved = $src
+    $db = Join-Path $work 'cafe\cafe.accdb'; $src = "$db.src"
+    try {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $here '..\scripts\New-SampleDatabase.ps1') -Path $db | Out-Null
+        $r = Acc export; Check 'sample export' ($r.ok -and (Test-Path (Join-Path $src 'forms\frmOrder.txt')) -and (Test-Path (Join-Path $src 'reports\rptReceipt.txt'))) $r
+        $r = Acc lint; Check 'sample lint clean' ($r.ok -and $r.result.errorCount -eq 0 -and $r.result.warningCount -eq 0 -and [int]$r.result.infoCount -eq 0) $r.result.problems
+        $r = Acc run @('-Function', 'PickOfTheDay', '-ArgsJson', "['2026/04/01']"); Check 'sample lucky menu' ($r.ok -and $r.result.value -eq '【中吉】今日のラッキーメニューは「カフェラテ」！') $r
+        foreach ($m in 'UI.bas', 'Assert.bas') { Copy-Item (Join-Path $here "..\scripts\templates\$m") (Join-Path $src "modules\$m") }
+        Put 'modules/Test_OrderForm.bas' "Option Compare Database`r`nOption Explicit`r`n`r`nPublic Sub Test_Takeout()`r`n    UI.OpenForm ""frmOrder""`r`n    UI.TypeText ""cboProduct"", ""カフェラテ""`r`n    UI.TypeText ""txtQty"", ""2""`r`n    UI.Click ""chkTakeout""`r`n    UI.Click ""cmdCalc""`r`n    Assert.AreEqual 1080, UI.Value(""txtTotal"")`r`nEnd Sub`r`n`r`nPublic Sub Test_Lucky()`r`n    UI.OpenForm ""frmOrder""`r`n    UI.Click ""cmdPick""`r`n    Assert.IsTrue UI.Form.lblPick.Caption Like ""【*】*""`r`nEnd Sub`r`n`r`nPublic Sub TestTeardown()`r`n    UI.CloseForm ""frmOrder""`r`nEnd Sub`r`n"
+        $r = Acc import; Check 'sample import UI tests' ($r.ok -and $r.result.verify.ok) $r
+        $r = Acc test
+        $t1 = @($r.result.tests | Where-Object { $_.name -eq 'Test_Takeout' })[0]; $t2 = @($r.result.tests | Where-Object { $_.name -eq 'Test_Lucky' })[0]
+        Check 'UI test finds the takeout bug' ($t1.status -eq 'failed' -and $t1.message -match '1100' -and $t2.status -eq 'passed') $r.result.tests
+        $p = Join-Path $src 'forms\frmOrder.txt'
+        [IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p).Replace('TaxIncluded(Me.txtSubtotal, False)', 'TaxIncluded(Me.txtSubtotal, Nz(Me.chkTakeout, False))'), $u8)
+        $r = Acc import; $r = Acc test; Check 'UI test passes after the fix' ($r.ok -and $r.result.summary.passed -eq 2) $r.result.tests
+    }
+    finally { $db = $dbSaved; $src = $srcSaved }
 }
 finally {
     $left = @(Get-CimInstance Win32_Process -Filter "Name='MSACCESS.EXE'" | Where-Object { $_.CommandLine -match '-Embedding' -and $_.CreationDate -gt (Get-Item $work).CreationTime })

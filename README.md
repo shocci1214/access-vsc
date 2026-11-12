@@ -16,7 +16,7 @@ Microsoft Access の VBA・クエリ・フォーム・レポート・マクロ�
 ```
 
 > **📖 ドキュメント： https://shocci1214.github.io/access-vsc/**
-> [チュートリアル](https://shocci1214.github.io/access-vsc/tutorial.html)（手を動かして一通り体験）・[学習コース](https://shocci1214.github.io/access-vsc/course.html)（初級→中級→上級）・[リファレンス](https://shocci1214.github.io/access-vsc/reference.html)（一覧・辞書）の 3 つがあります。
+> [チュートリアル](https://shocci1214.github.io/access-vsc/tutorial.html)（カフェの注文・売上管理を題材に、初級・中級・上級の 3 編）・[学習コース](https://shocci1214.github.io/access-vsc/course.html)（初級→中級→上級）・[リファレンス](https://shocci1214.github.io/access-vsc/reference.html)（一覧・辞書）の 3 つがあります。
 > 同じものが [docs/](docs/index.html) にも入っていて、拡張機能をインストールした後はサイドバーの「その他」→「ドキュメント」からも開けます。
 
 ## できること
@@ -40,6 +40,7 @@ Microsoft Access の VBA・クエリ・フォーム・レポート・マクロ�
 | 帳票 | ページ設定 | 用紙サイズ・向き・余白（バイナリで保存されていてテキストでは直せない部分）をコマンドで変更。 |
 | 帳票 | スナップショット | 全レポートを画像化して基準画像と比較。変わった所を赤で示す差分画像つき（見た目の回帰テスト）。 |
 | テスト | ユニットテスト | `Public Sub Test_*()` を **DB のコピー上で** 実行。VS Code の「テスト」ビューに ✔/✘、失敗箇所に移動。JUnit XML 出力。 |
+| テスト | UI テスト | `UI` モジュールで、フォームに **キーボードで入力・ボタンを押す** テストを書ける。AfterUpdate や Click のイベントも実際に動く。 |
 | CI/CD | CI の準備 | Assert モジュール・テスト例・GitHub Actions・コミット前チェック・.gitattributes をまとめて追加。 |
 | CI/CD | リリース・配布 | 版番号の書き込み → 本番バックエンドへの張り替え → **.accde** 作成 → 共有フォルダへ公開。利用者は起動用ランチャーで常に最新版。 |
 | AI 連携 | MCP サーバー・CLI | Copilot には自動登録。Claude Code・Cursor・Gemini CLI 向けの設定と作業手順（完了の条件つき）を生成。JSON を返す CLI も。 |
@@ -128,6 +129,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build-vsix.ps1 -Install
 |---|---|
 | `<src>/modules/Assert.bas` | アサーション（`AreEqual` `AreNotEqual` `AreClose` `IsTrue` `IsFalse` `IsNullValue` `IsNothing` `Contains` `Fail`） |
 | `<src>/modules/Test_Example.bas` | テストの例（テストが 1 つもない場合のみ） |
+| `<src>/modules/UI.bas` | フォームを操作するテスト用（フォームがある場合のみ）。`UI.OpenForm` / `UI.TypeText` / `UI.Click` / `UI.Value` |
 | `tools/access-vsc/` | CI で使うスクリプト一式（拡張機能がない環境でも動く） |
 | `.github/workflows/access-ci.yml` | GitHub Actions：**lint**（クラウドの windows-latest）→ **test**（Access 入りのセルフホストランナー） |
 | `.githooks/pre-commit` | コミット前に lint。エラーがあるとコミットを止める（`core.hooksPath` を設定） |

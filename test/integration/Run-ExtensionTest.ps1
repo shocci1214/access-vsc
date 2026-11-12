@@ -37,6 +37,8 @@ $db = Join-Path $ws 'shop.accdb'
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'scripts\New-SampleDatabase.ps1') -Path $db | Write-Output
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'scripts\access.ps1') export -DbPath $db -Compress | Out-Null
 $mods = Join-Path $ws 'shop.accdb.src\modules'
+# サンプルの modCafe にも TaxIncluded があるので、名前が重ならないように外しておく（ファイルだけ。テストは言語機能だけを見る）
+Remove-Item (Join-Path $mods 'modCafe.bas') -ErrorAction SilentlyContinue
 [System.IO.File]::WriteAllText((Join-Path $mods 'modTax.bas'), @"
 Option Compare Database
 Option Explicit

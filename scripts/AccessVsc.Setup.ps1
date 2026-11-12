@@ -4,6 +4,7 @@
     - tools/access-vsc/          … CI でも使えるよう、スクリプト一式をリポジトリにコピー
     - <src>/modules/Assert.bas   … テスト用アサーション（なければ）
     - <src>/modules/Test_Example.bas … テストの例（テストが 1 つもなければ）
+    - <src>/modules/UI.bas       … フォームを操作するテスト用（フォームがあって、なければ）
     - .github/workflows/access-ci.yml … GitHub Actions（lint はクラウド、test はセルフホストランナー）
     - .githooks/pre-commit       … コミット前に lint（git config core.hooksPath .githooks を設定）
     - .gitattributes / .gitignore
@@ -74,6 +75,11 @@ function Invoke-SetupCi([string]$Db, [string]$Src, [string]$Root, [bool]$Force, 
     if (-not (Test-Path -LiteralPath (Join-Path $modDir 'Assert.bas')) -and -not (Test-Path -LiteralPath (Join-Path $modDir 'Assert.cls'))) {
         & $put (Get-RelForward $Root (Join-Path $modDir 'Assert.bas')) ([System.IO.File]::ReadAllText((Join-Path $tpl 'Assert.bas'), $u8)) $false
     }
+    $formDir = Join-Path $Src 'forms'
+    $hasForms = (Test-Path -LiteralPath $formDir) -and @(Get-ChildItem -LiteralPath $formDir -Filter '*.txt' -File).Count -gt 0
+    if ($hasForms -and -not (Test-Path -LiteralPath (Join-Path $modDir 'UI.bas')) -and -not (Test-Path -LiteralPath (Join-Path $modDir 'UI.cls'))) {
+        & $put (Get-RelForward $Root (Join-Path $modDir 'UI.bas')) ([System.IO.File]::ReadAllText((Join-Path $tpl 'UI.bas'), $u8)) $false
+    }
     if (@(Get-TestCases $Src).Count -eq 0) {
         & $put (Get-RelForward $Root (Join-Path $modDir 'Test_Example.bas')) ([System.IO.File]::ReadAllText((Join-Path $tpl 'Test_Example.bas'), $u8)) $false
     }
@@ -113,7 +119,8 @@ function Invoke-SetupCi([string]$Db, [string]$Src, [string]$Root, [bool]$Force, 
     ) '# Access VSC: ソースは CRLF のまま、DB はバイナリとして扱う'
     & $append '.gitignore' @('.accessvsc/', '*.laccdb', '*.ldb', 'test-results/') '# Access VSC'
 
-    $notes.Add('追加した Assert.bas / Test_Example.bas は「Access へ反映（インポート）」すると DB に入り、テストを実行できます。')
+    $notes.Add('追加した Assert.bas / Test_Example.bas（フォームがあれば UI.bas も）は「Access へ反映（インポート）」すると DB に入り、テストを実行できます。')
+    $notes.Add('UI.bas を使うと、フォームに入力してボタンを押すテストが書けます（例: UI.OpenForm "frmOrder" → UI.TypeText "txtQty", "3" → UI.Click "cmdCalc"）。')
     $notes.Add('.accdb もコミットしてください（CI はコミットされた .accdb にソースを取り込んでテストします）。大きい場合は Git LFS の利用を検討してください。')
     return [ordered]@{
         root    = $Root

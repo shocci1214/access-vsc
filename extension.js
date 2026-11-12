@@ -861,6 +861,7 @@ Access データベース \`${rel(db)}\` は \`${rel(src)}/\` にテキストと
 ### テスト・品質
 - テストは標準モジュール（例 \`modules/Test_Tax.bas\`）に **\`Public Sub Test_○○()\`（引数なし）** で書く。同じモジュールの \`TestSetup\` / \`TestTeardown\` は各テストの前後に呼ばれる
 - 確認は \`Assert\` モジュール: \`Assert.AreEqual 期待値, 実際\` / \`Assert.IsTrue 条件\` / \`Assert.AreClose 期待, 実際, 誤差\` / \`Assert.Contains 文字列, 部分\` / \`Assert.Fail "理由"\`
+- フォームの動き（入力 → ボタン → 結果）は \`UI\` モジュールで確かめる: \`UI.OpenForm "frm"\` / \`UI.TypeText "txt", "値"\`（Tab で確定し AfterUpdate が動く）/ \`UI.Click "cmd"\` / \`UI.Value("txt")\` / \`UI.CloseForm\`（TestTeardown で閉じる）。値を直接代入するとイベントが動かないので、操作のテストでは UI を使う
 - \`access_import\` してから \`access_test\`（filter で絞り込み可）。テストは DB のコピーで動くのでデータを書き換えてよい（ただしリンクテーブルの先は本物）
 - 機能を直したら、対応するテストを追加・更新し、\`access_test\` と \`access_lint\` が通ってから完了とする
 - \`access_lint\` の警告（型の書き忘れ \`implicit-variant\`・使っていない変数 \`unused-variable\` など）は、触ったコードの分は直す
@@ -1412,13 +1413,26 @@ async function cmdCreateSample() {
     title: '練習用サンプルを作る場所を選んでください（中に「AccessVSC-練習」フォルダができます）',
   });
   if (!pick) return;
-  const dir = path.join(pick[0].fsPath, 'AccessVSC-練習');
-  const db = path.join(dir, 'shop.accdb');
-  if (fs.existsSync(db)) {
-    const c = await vscode.window.showInformationMessage('サンプルは既にあります。そのフォルダを開きますか？', '開く');
-    if (c) vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(dir), { forceNewWindow: true });
-    return;
+  let dir = path.join(pick[0].fsPath, 'AccessVSC-練習');
+  if (fs.existsSync(dir)) {
+    // 中級編・上級編は新しいサンプルから始められるので、別のフォルダに作れるようにする
+    let n = 2;
+    while (fs.existsSync(`${dir}${n}`)) n++;
+    const c = await vscode.window.showQuickPick(
+      [
+        { label: '$(folder-opened) 今あるサンプルを開く', id: 'open' },
+        { label: '$(add) 新しく作る', description: `AccessVSC-練習${n}`, id: 'new' },
+      ],
+      { placeHolder: '練習用サンプルは既にあります' }
+    );
+    if (!c) return;
+    if (c.id === 'open') {
+      vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(dir), { forceNewWindow: true });
+      return;
+    }
+    dir = `${dir}${n}`;
   }
+  const db = path.join(dir, 'cafe.accdb');
   const out = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: '練習用サンプルを作成中...' }, () =>
     new Promise((resolve) => {
       const p = cp.spawn(powershell(), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(binDir(), 'New-SampleDatabase.ps1'), '-Path', db], { windowsHide: true });
@@ -1777,7 +1791,7 @@ function activate(context) {
   reg('accessVsc.openDeployFolder', cmdOpenDeployFolder);
   reg('accessVsc.openManual', (page) => {
     // docs フォルダの HTML だけ（パスをたどって別のファイルを開かないように）
-    const name = typeof page === 'string' && /^[a-z]+\.html$/.test(page) ? page : 'index.html';
+    const name = typeof page === 'string' && /^[a-z][a-z0-9-]*\.html$/.test(page) ? page : 'index.html';
     vscode.env.openExternal(vscode.Uri.file(path.join(context.extensionPath, 'docs', name)));
   });
   reg('accessVsc.createSample', cmdCreateSample);

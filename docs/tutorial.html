@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Access VSC チュートリアル</title>
-<meta name="description" content="練習用サンプルを使って、Access VSC の基本を手を動かしながら一通り体験するチュートリアル。">
+<meta name="description" content="カフェの注文・売上管理を題材に、初級（基本操作）・中級（改修案件）・上級（自動テストと CI/CD）の 3 編で Access VSC を体験するチュートリアル。">
 <link rel="stylesheet" href="assets/docs.css">
 </head>
 <body>
@@ -22,29 +22,25 @@
   <div class="h">チュートリアル</div>
   <ol>
     <li><a href="#about">はじめに</a></li>
-    <li><a href="#t0">0. 準備</a></li>
-    <li><a href="#t1">1. 取り出して中身を見る</a></li>
-    <li><a href="#t2">2. はじめての関数</a></li>
-    <li><a href="#t3">3. わざと間違えてみる</a></li>
-    <li><a href="#t4">4. データを見る・クエリを作る</a></li>
-    <li><a href="#t5">5. 帳票を直す</a></li>
-    <li><a href="#t6">6. テストを書く</a></li>
-    <li><a href="#t7">7. AI に頼む</a></li>
-    <li><a href="#t8">8. 仕上げと次の一歩</a></li>
+    <li><a href="#cafe">題材：カフェ こもれび</a></li>
+    <li><a href="#levels">3 つの編</a></li>
+    <li><a href="tutorial-basic.html">初級編：基本操作</a></li>
+    <li><a href="tutorial-intermediate.html">中級編：改修案件</a></li>
+    <li><a href="tutorial-advanced.html">上級編：自動テストと CI/CD</a></li>
   </ol>
 </nav>
 
 <main>
 <header class="hero">
   <div class="kind">TUTORIAL</div>
-  <h1>チュートリアル：受注管理を改良してみよう</h1>
-  <p>練習用のサンプル（小さな受注管理のデータベース）を使って、関数を作る → 動かす → 間違いを直す → 帳票を直す → テストを書く → AI に頼む、までを手を動かして体験します。</p>
-  <div class="meta"><span class="pill">所要時間 60〜90 分</span><span class="pill">上から順番に</span><span class="pill">自分のデータベースは使いません</span></div>
+  <h1>チュートリアル：カフェ「こもれび」のシステムを育てよう</h1>
+  <p>小さなカフェの注文・売上管理のデータベースを題材に、Access VSC を手を動かしながら体験します。初級（基本操作）→ 中級（改修案件）→ 上級（自動テストと CI/CD）の 3 編に分かれています。</p>
+  <div class="meta"><span class="pill">3 編・合計 3〜4 時間</span><span class="pill">どの編からでも始められます</span><span class="pill">自分のデータベースは使いません</span></div>
 </header>
 
 <section id="about">
   <h2>はじめに</h2>
-  <p>このチュートリアルでは、<b>説明は最小限にして、まず動かしてみる</b>ことを大切にしています。「なぜそうなるのか」は、終わった後に<a href="course.html">学習コース</a>で学べます。ボタンの意味を調べたいときは<a href="reference.html">リファレンス</a>を引いてください。</p>
+  <p>このチュートリアルでは、<b>説明は最小限にして、まず動かしてみる</b>ことを大切にしています。「なぜそうなるのか」は、終わった後に<a href="course.html">学習コース</a>で学べます。ボタンや設定の意味を調べたいときは<a href="reference.html">リファレンス</a>を引いてください。</p>
   <ul>
     <li>各ステップの最後にある <b>「ここまでできたら OK」</b> で、うまくいったか確かめながら進みます</li>
     <li>うまくいかないときは、各ステップの <b>「うまくいかないとき」</b> を開いてください</li>
@@ -52,237 +48,49 @@
   </ul>
 </section>
 
-<!-- ====================================================== -->
-<section id="t0">
-  <h2>0. 準備 <span class="pill">10 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>練習用サンプルを VS Code で開き、左の Access アイコンからサイドバーを表示する。</div>
-  <ol class="steps">
-    <li><b>拡張機能をインストールする（まだの場合）</b>VS Code の［ターミナル］→［新しいターミナル］で次を実行します。
-<pre><code>cd C:\work\access-vscode
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build-vsix.ps1 -Install</code></pre>
-      終わったら <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> を押し、<code>Reload Window</code> と入力して Enter（VS Code の再読み込み）。</li>
-    <li><b>左端の Access アイコンを押す</b>データベースのアイコンに「A」が付いたものです。</li>
-    <li><b>「練習用サンプルを作る」を押す</b>サイドバーの「その他」の中、またはデータベースがまだないときに出る案内の中にあります。作る場所（例：ドキュメント）を選ぶと、その中に <code>AccessVSC-練習</code> フォルダができ、<code>shop.accdb</code> が作られます。</li>
-    <li><b>「開く」を押す</b>新しい VS Code のウィンドウでサンプルのフォルダが開きます。以降はこのウィンドウで作業します。</li>
-  </ol>
-  <h4>サンプルの中身</h4>
+<section id="cafe">
+  <h2>題材：カフェ こもれび</h2>
+  <p>駅前の小さなカフェです。レジ代わりの注文入力画面、お客さまに渡すレシート、月末に店長が見る売上表があります。動かして楽しい仕掛けと、実際の業務でよく出てくる要素を入れてあります。</p>
+  <div class="table-wrap"><table>
+    <tr><th>業務でよく出てくる要素</th><th>サンプルでは</th></tr>
+    <tr><td>消費税の計算と端数処理</td><td>店内は 10%、テイクアウトは軽減税率 8%。1 円未満は切り捨て</td></tr>
+    <tr><td>インボイス（適格請求書）</td><td>レシートに税率ごとの合計・消費税額と登録番号を印字する（中級編）</td></tr>
+    <tr><td>入力画面のイベント処理</td><td>注文入力で、商品・数量・テイクアウトを変えたら金額を計算し直す</td></tr>
+    <tr><td>帳票のグループと小計</td><td>月次売上表は、分類（ドリンク・フード・デザート）ごとに小計</td></tr>
+    <tr><td>会員・ポイント</td><td>スタンプカード（10 個でドリンク 1 杯無料）</td></tr>
+    <tr><td>配布</td><td>お店の PC に .accde で配る（上級編）</td></tr>
+  </table></div>
   <div class="table-wrap"><table>
     <tr><th>種類</th><th>名前</th><th>内容</th></tr>
-    <tr><td>テーブル</td><td>Customers / Products / Orders</td><td>顧客 5 件 / 商品 4 件 / 受注 7 件</td></tr>
-    <tr><td>クエリ</td><td>qryOrderList</td><td>受注一覧（顧客名・商品名・金額つき）</td></tr>
-    <tr><td>フォーム</td><td>frmCustomers</td><td>顧客の入力画面</td></tr>
-    <tr><td>レポート</td><td>rptOrders</td><td>受注一覧の帳票</td></tr>
-    <tr><td>モジュール</td><td>modMain</td><td>あいさつの関数 <code>Greet</code></td></tr>
+    <tr><td>テーブル</td><td>Products / Members / Orders / OrderDetails</td><td>メニュー 8 品 / 会員 5 人（スタンプの数つき）/ 注文 12 件 / 注文明細 23 行（行ごとに店内・テイクアウト）</td></tr>
+    <tr><td>クエリ</td><td>qrySalesDetail</td><td>売上明細（金額・税率つき）</td></tr>
+    <tr><td>フォーム</td><td>frmOrder</td><td>注文入力。「今日のラッキーメニュー」ボタンつき</td></tr>
+    <tr><td>レポート</td><td>rptReceipt / rptMonthlySales</td><td>レシート（領収書）/ 月次売上（分類ごとの小計）</td></tr>
+    <tr><td>モジュール</td><td>modCafe</td><td>税率・税込金額・今日のラッキーメニュー（日付で決まるおみくじ）</td></tr>
   </table></div>
-  <figure class="shot"><a href="images/t01-first.png" target="_blank"><img src="images/t01-first.png" alt="サンプルを開いたところ" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>サンプルを開いて Access アイコンを押したところ。まだ「取り出して」いないので、下の「オブジェクト」は空です。</figcaption></figure>
-  <div class="check">左に「かんたん操作」が表示され、一番上に <code>shop.accdb</code> と出ている。</div>
-  <details class="trouble"><summary>うまくいかないとき</summary>
-    <ul>
-      <li>Access アイコンが出ない → 再読み込み（Reload Window）をもう一度</li>
-      <li>サンプルが作れない → Microsoft Access がインストールされているか確認。「その他」→「ログを表示」に原因が出ます</li>
-    </ul>
-  </details>
+  <div class="callout note"><b>練習用サンプルの作り方</b>左の Access アイコン →「その他」→「練習用サンプルを作る」。作る場所を選ぶと <code>AccessVSC-練習</code> フォルダに <code>cafe.accdb</code> ができます。もう一度押すと「新しく作る」を選べるので、<b>中級編・上級編はまっさらなサンプルから始められます</b>。</div>
 </section>
 
-<!-- ====================================================== -->
-<section id="t1">
-  <h2>1. 取り出して中身を見る <span class="pill">5 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>Access の中身をファイルに取り出し、どんなファイルになるかを見る。</div>
-  <ol class="steps">
-    <li><b>「① Access から取り出す」を押す</b>数秒で終わり、右下に「エクスポート完了」と出ます。<code>shop.accdb</code> の隣に <code>shop.accdb.src</code> フォルダができました。</li>
-    <li><b>「オブジェクト」の一覧を見る</b>モジュール・フォーム・レポート・クエリ・テーブルに分かれて並んでいます。</li>
-    <li><b>いくつか開いてみる</b>クリックすると右側に開きます。
-      <ul>
-        <li><code>modMain</code> … いつもの VBA です。関数の上に「▶ Access で実行」が出ています</li>
-        <li><code>qryOrderList</code> … クエリの SQL です</li>
-        <li><code>rptOrders</code> … 帳票の設計図です。項目ごとに位置や大きさが数字で書かれています</li>
-        <li>テーブルの <code>Orders</code> … 項目名や型の一覧です（見るだけのファイル）</li>
-      </ul></li>
-  </ol>
-  <figure class="shot"><a href="images/t02-exported.png" target="_blank"><img src="images/t02-exported.png" alt="取り出した後" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>取り出した後。「オブジェクト」に一覧が出ます。</figcaption></figure>
-  <div class="check">「オブジェクト」に、モジュール 1・フォーム 1・レポート 1・クエリ 1・テーブル 3 が並んでいる。</div>
-</section>
-
-<!-- ====================================================== -->
-<section id="t2">
-  <h2>2. はじめての関数 <span class="pill">10 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>新しいモジュールに関数を書き、Access に反映して実行する。</div>
-  <ol class="steps">
-    <li><b>新しいモジュールのファイルを作る</b>左上のファイルのアイコン（エクスプローラー）を押し、<code>shop.accdb.src</code> → <code>modules</code> フォルダを右クリック →［新しいファイル］→ <code>modTax.bas</code> と入力して Enter。<br>ファイル名（<code>.bas</code> を除いた部分）がそのままモジュール名になります。</li>
-    <li><b>次のコードを書いて保存（<kbd>Ctrl</kbd>+<kbd>S</kbd>）</b>
-<pre><code>Option Compare Database
-Option Explicit
-
-' 税込金額（消費税 10%、1 円未満切り捨て）
-Public Function TaxIncluded(ByVal price As Currency) As Currency
-    TaxIncluded = Int(price * 1.1)
-End Function</code></pre>
-      左の Access アイコンに戻ると、<code>modTax</code> に「＋ 新規（未反映）」と出ています。画面の一番下にも、まだ反映していない数が表示されます。</li>
-    <li><b>「③ Access へ反映する」を押す</b>右下に「インポート 1 件 / コンパイル OK」と出れば成功です。</li>
-    <li><b>関数の上の「▶ Access で実行」を押す</b>引数の入力欄が出るので <code>100</code> と入力して Enter。右下に <b>TaxIncluded → 110</b> と出ます。</li>
-    <li><b>もう一度、今度は <code>99</code> で実行</b>99 × 1.1 = 108.9 なので、切り捨てて <b>108</b> になります。</li>
-  </ol>
-  <figure class="shot"><a href="images/t03-new-module.png" target="_blank"><img src="images/t03-new-module.png" alt="新しいモジュール" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>保存した直後。「＋ 新規（未反映）」と、画面下に未反映の数（● 1）。</figcaption></figure>
-  <figure class="shot"><a href="images/t05-run-args.png" target="_blank"><img src="images/t05-run-args.png" alt="引数の入力" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>「▶ Access で実行」を押すと、引数の入力欄が出ます。</figcaption></figure>
-  <figure class="shot"><a href="images/t06-run-result.png" target="_blank"><img src="images/t06-run-result.png" alt="実行結果" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>実行結果。右下の通知と、下の「出力」に表示されます。</figcaption></figure>
-  <div class="check">100 で実行すると 110、99 で実行すると 108 が返ってくる。</div>
-  <details class="trouble"><summary>うまくいかないとき</summary>
-    <ul>
-      <li>「データベースが Access などで開かれています」 → Access の画面で shop.accdb を開いていたら閉じる</li>
-      <li>「▶ Access で実行」が出ない → ファイル名の拡張子が <code>.bas</code> か、<code>modules</code> フォルダの中かを確認</li>
-      <li>文字列を渡したいときは <code>"山田"</code> のようにダブルクォートで囲みます</li>
-    </ul>
-  </details>
-</section>
-
-<!-- ====================================================== -->
-<section id="t3">
-  <h2>3. わざと間違えてみる <span class="pill">10 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>コンパイル エラーと実行時エラーが、どこにどう表示されるかを知る。</div>
-  <h3>コンパイル エラー（書き間違い）</h3>
-  <ol class="steps">
-    <li><b>変数名を間違える</b><code>price * 1.1</code> を <code>prise * 1.1</code> に書き換えて保存。</li>
-    <li><b>「③ Access へ反映する」</b>その行に<b>赤い波線</b>が付き、右下に「コンパイル エラー: 変数が定義されていません。（modTax.bas の 6 行目）」と出ます。</li>
-    <li><b>元に戻して、もう一度反映</b>「コンパイル OK」に戻れば大丈夫です。</li>
-  </ol>
-  <figure class="shot"><a href="images/t07-compile-error.png" target="_blank"><img src="images/t07-compile-error.png" alt="コンパイル エラー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>コンパイル エラー。間違えた行に赤い波線、右下にエラーの内容と行番号。</figcaption></figure>
-
-  <h3>実行時エラー（動かしたときのエラー）</h3>
-  <ol class="steps">
-    <li><b><code>modTax.bas</code> の最後に、単価を求める関数を足して保存</b>
-<pre><code>' 単価（金額 ÷ 数量）
-Public Function UnitPrice(ByVal amount As Currency, ByVal qty As Long) As Currency
-    UnitPrice = amount / qty
-End Function</code></pre></li>
-    <li><b>反映して、<code>UnitPrice</code> を引数 <code>1000, 0</code> で実行</b>0 で割ったので、割り算の行に赤い波線が付き、「実行時エラー '11': 0 で除算しました。」と出ます。<br>（Access の画面だとエラーのダイアログで止まるところですが、自動で閉じてエラーの場所を教えてくれます。）</li>
-    <li><b>0 のときは 0 を返すように直す</b>
-<pre><code>Public Function UnitPrice(ByVal amount As Currency, ByVal qty As Long) As Currency
-    If qty = 0 Then
-        UnitPrice = 0
-        Exit Function
-    End If
-    UnitPrice = amount / qty
-End Function</code></pre>
-      保存 → 反映 → 同じ引数で実行すると、<b>0</b> が返ります。</li>
-  </ol>
-  <figure class="shot"><a href="images/t08-runtime-error.png" target="_blank"><img src="images/t08-runtime-error.png" alt="実行時エラー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>実行時エラー。エラーが起きた行に赤い波線。</figcaption></figure>
-  <div class="check">コンパイル エラーは「反映したとき」、実行時エラーは「実行したとき」に、どちらも該当の行に赤い波線で出ることがわかった。</div>
-</section>
-
-<!-- ====================================================== -->
-<section id="t4">
-  <h2>4. データを見る・クエリを作る <span class="pill">10 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>テーブルの中身を確認し、新しいクエリを SQL で作って動かす。</div>
-  <ol class="steps">
-    <li><b>テーブルの中身を見る</b>「オブジェクト」→「テーブル」を開き、<code>Orders</code> にマウスを乗せて右端の ▶ を押すと、受注データが表で表示されます。</li>
-    <li><b>新しいクエリのファイルを作る</b><code>queries</code> フォルダに <code>qryCustomerTotal.sql</code> を作り、次を書いて保存。
-<pre><code>SELECT c.CustomerName, Sum(p.Price * o.Qty) AS Total
-FROM (Orders AS o
-  INNER JOIN Customers AS c ON o.CustomerID = c.ID)
-  INNER JOIN Products AS p ON o.ProductID = p.ID
-GROUP BY c.CustomerName
-ORDER BY Sum(p.Price * o.Qty) DESC;</code></pre></li>
-    <li><b>「③ Access へ反映する」</b>Access に <code>qryCustomerTotal</code> というクエリができます。</li>
-    <li><b>クエリの ▶ で実行</b>顧客ごとの売上合計が、多い順に表示されます。1 位は <b>佐藤工業（8,910 円）</b> のはずです。</li>
-  </ol>
-  <figure class="shot"><a href="images/t09-query-result.png" target="_blank"><img src="images/t09-query-result.png" alt="クエリの結果" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>作ったクエリを ▶ で実行した結果。</figcaption></figure>
-  <div class="check">佐藤工業 8910、山田商店 4470、高橋電機 1980、田中書店 1800、鈴木食品 1150 の順に表示される。</div>
-  <div class="callout note"><b>データは書き換わりません</b>ここで実行できるのは、データを読むだけの SELECT です。<code>.sql</code> を開いたときに上に出る「▶ この SQL を実行」でも、保存前に試せます。</div>
-</section>
-
-<!-- ====================================================== -->
-<section id="t5">
-  <h2>5. 帳票を直す <span class="pill">15 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>受注一覧の帳票で、タイトルを変え、商品の列を広げる。重なったら直す。</div>
-  <ol class="steps">
-    <li><b>今の帳票を見る</b>「オブジェクト」→「レポート」の <code>rptOrders</code> にある<b>プレビュー</b>ボタン（目のアイコン）を押すと、印刷イメージが画像で表示されます。</li>
-    <li><b>レポートのファイルを開く</b><code>rptOrders</code> をクリック。<code>Begin Label</code> や <code>Begin TextBox</code> のかたまりが 1 つの項目で、<code>Left</code>（左からの位置）・<code>Width</code>（幅）などが数字で書かれています。単位は twip で、<b>1 cm = 567</b> です。
-      <figure class="shot"><a href="images/t11-report-source.png" target="_blank"><img src="images/t11-report-source.png" alt="レポートのファイル" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>レポートのファイル。先頭にプレビューなどのボタンが出ます。</figcaption></figure></li>
-    <li><b>タイトルを変える</b><kbd>Ctrl</kbd>+<kbd>F</kbd> で <code>受注一覧</code> を探し、<code>Caption ="受注一覧"</code> を <code>Caption ="受注一覧（2026年4月）"</code> に変えます。</li>
-    <li><b>商品の列を広げる</b><kbd>Ctrl</kbd>+<kbd>F</kbd> で <code>Name ="lblProductName"</code>（見出し）を探します。そのかたまり（すぐ上の <code>Begin Label</code> から下）の中にある <code>Width =1700</code> を <code>Width =2400</code> に変えます。同じように <code>Name ="txtProductName"</code>（中身。<code>Begin TextBox</code> のかたまり）の <code>Width =1700</code> も <code>2400</code> に変えて保存。</li>
-    <li><b>反映してプレビュー</b>上に黄色い枠で「<b>txtProductName と txtQty が重なっています</b>」と出ます。商品の列を広げたので、右隣の数量の列にかぶってしまいました。</li>
-  </ol>
-  <figure class="shot"><a href="images/t12-report-overlap.png" target="_blank"><img src="images/t12-report-overlap.png" alt="重なりの警告" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>列を広げすぎて重なった状態。プレビューの上に問題が表示されます。</figcaption></figure>
-  <ol class="steps" start="6" style="counter-reset: s 5">
-    <li><b>右の列をずらす</b>数量（<code>lblQty</code> と <code>txtQty</code>）の <code>Left =5800</code> を <code>Left =6500</code> に、金額（<code>lblAmount</code> と <code>txtAmount</code>）の <code>Left =6700</code> を <code>Left =7400</code> に変えます。</li>
-    <li><b>帳票全体の幅も広げる</b>ファイルの最初のほう（<code>Begin Report</code> のすぐ下）にある <code>Width =8000</code> を <code>Width =8800</code> に変えて保存。<br>（忘れても Access が自動で広げますが、保存したときのコードチェックで「幅を超えています」と注意が出ます。）</li>
-    <li><b>反映してプレビュー</b>「レイアウトの問題は見つかりませんでした」と出れば完成です。</li>
-  </ol>
-  <figure class="shot"><a href="images/t13-report-fixed.png" target="_blank"><img src="images/t13-report-fixed.png" alt="直した帳票" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>直した後。問題がなくなり、タイトルも変わっています。</figcaption></figure>
-  <div class="check">プレビューでタイトルが「受注一覧（2026年4月）」になり、商品名が広く、問題の表示がない。</div>
-  <div class="callout tip"><b>（やってみよう）用紙を横向きに</b><code>rptOrders</code> を右クリック →「ページ設定」→ 用紙 A4 → 向き「横」→ 余白は空欄で Enter。用紙の設定はテキストでは変えられないので、この画面を使います。</div>
-  <figure class="shot"><a href="images/t14-pagesetup.png" target="_blank"><img src="images/t14-pagesetup.png" alt="ページ設定" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>ページ設定：用紙サイズを選ぶ画面</figcaption></figure>
-</section>
-
-<!-- ====================================================== -->
-<section id="t6">
-  <h2>6. テストを書く <span class="pill">10 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>関数が正しいことを、自動で確かめるテストを書いて動かす。</div>
-  <ol class="steps">
-    <li><b>「テスト・品質」→「テスト・CI/CD を準備」</b>「git を始めますか？」と聞かれたら［git を始める］。テスト用の <code>Assert</code> モジュールとテストの例が追加されます。最後に「反映してテストしますか？」と聞かれたら［反映してテスト］。例のテストがすべて ✔ になります。</li>
-    <li><b>自分のテストを書く</b><code>modules</code> に <code>Test_Tax.bas</code> を作り、次を書いて保存。
-<pre><code>Option Compare Database
-Option Explicit
-
-Public Sub Test_TaxIncluded_100yen()
-    Assert.AreEqual 110, TaxIncluded(100)
-End Sub
-
-Public Sub Test_TaxIncluded_RoundDown()
-    Assert.AreEqual 108, TaxIncluded(99), "1 円未満は切り捨て"
-End Sub
-
-Public Sub Test_UnitPrice_ZeroQty()
-    Assert.AreEqual 0, UnitPrice(1000, 0)
-End Sub</code></pre>
-      名前が <code>Test_</code> で始まる、引数なしの <code>Public Sub</code> がテストになります。</li>
-    <li><b>反映して「テストを実行」</b>左に「テスト」の画面が開き、全部 ✔ になります。</li>
-    <li><b>わざと失敗させてみる</b><code>108</code> を <code>109</code> に変えて保存 → 反映 → テストを実行。そのテストが ✘ になり、「1 円未満は切り捨て - 期待値 109 (Integer) / 実際 108 (Currency)」と表示されます。確認したら元に戻します。</li>
-  </ol>
-  <figure class="shot"><a href="images/t15-tests.png" target="_blank"><img src="images/t15-tests.png" alt="テスト結果" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>テストの結果。✘ のテストには、期待した値と実際の値が表示されます。</figcaption></figure>
-  <div class="check">テストが ✔ になり、わざと間違えると ✘ になって理由が表示される。</div>
-  <div class="callout note"><b>テストはコピーの上で動きます</b>テストは、データベースのコピーの上で実行されます。テストの中でデータを書き換えても、元の shop.accdb は変わりません。</div>
-</section>
-
-<!-- ====================================================== -->
-<section id="t7">
-  <h2>7. AI に頼む <span class="pill">15 分</span></h2>
-  <div class="goalbox"><b>ゴール：</b>AI（Claude Code）に修正を頼み、AI が反映・テストまで自分で行う様子を見る。</div>
-  <ol class="steps">
-    <li><b>「AI と使う」→「AI エージェント連携を設定」</b>［Claude Code］にチェックを入れて OK。<code>.mcp.json</code> と <code>CLAUDE.md</code>（AI への作業手順書）が作られます。</li>
-    <li><b>Claude Code を開き直す</b>「access」というツールの使用を許可するか聞かれたら［許可］。</li>
-    <li><b>チャットで頼む</b>
-      <div class="callout note"><b>頼み方の例</b>modTax に、税込金額から税抜金額を求める関数 TaxExcluded を追加して（1 円未満切り捨て）。Test_Tax にテストも追加して、テストがすべて通ることまで確認して。</div>
-      AI は、ファイルを編集 → Access に反映 → コンパイル エラーがあれば直す → テストを実行、を自分で繰り返し、結果を報告します。</li>
-    <li><b>何が変わったかを確かめる</b>左の［ソース管理］（枝分かれのアイコン）を開くと、変わったファイルが並びます。クリックすると、変更前と変更後が左右に並んで表示されます。</li>
-    <li><b>帳票も頼んでみる</b>
-      <div class="callout note"><b>頼み方の例</b>rptOrders の数量の列の左に「単価」の列（Products の Price）を追加して。プレビューで重なりやはみ出しがないことを確認して。</div></li>
-  </ol>
-  <figure class="shot"><a href="images/t18-setup-agent.png" target="_blank"><img src="images/t18-setup-agent.png" alt="AI 連携の設定" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>使う AI を選ぶ画面。</figcaption></figure>
-  <div class="check">AI が関数とテストを追加し、テストが通ったと報告した。［ソース管理］で変更内容を確認できた。</div>
-  <div class="callout tip"><b>AI に頼むときのコツ</b>「何を」「どうしたいか」に加えて、<b>「どう確かめるか」</b>（テストを通す、プレビューで確認する、など）まで書くと、AI が自分で確かめてくれます。</div>
-</section>
-
-<!-- ====================================================== -->
-<section id="t8">
-  <h2>8. 仕上げと次の一歩 <span class="pill">5 分</span></h2>
-  <ol class="steps">
-    <li><b>帳票の見た目を記録する</b>「テスト・品質」→「帳票の見た目を比較」。初回は「基準なし」なので、画像を確認して［この見た目を基準にする］。今後、帳票の見た目が変わると赤い差分で教えてくれます。</li>
-    <li><b>変更を記録（コミット）する</b>［ソース管理］の上の入力欄に「税込計算と帳票の修正」などと書いて［コミット］。ここまでの作業が履歴に残ります。<br>（初めて git を使う場合は名前とメールアドレスを聞かれることがあります。ターミナルで <code>git config --global user.name "山田 太郎"</code> と <code>git config --global user.email "you@example.com"</code> を実行してください。）</li>
-  </ol>
-  <figure class="shot"><a href="images/t17-snapshot.png" target="_blank"><img src="images/t17-snapshot.png" alt="帳票の見た目の比較" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>帳票の見た目の比較。基準と違う所が赤で表示されます（画像はタイトルを変えた後に比較した例）。</figcaption></figure>
-  <h3>おつかれさまでした！</h3>
-  <p>ここまでで、Access VSC の主な機能を一通り体験しました。</p>
-  <div class="table-wrap"><table>
-    <tr><th>やったこと</th><th>もっと知るには</th></tr>
-    <tr><td>取り出す・編集・反映・実行</td><td><a href="course.html#b2">学習コース 初級「毎日の流れ」</a></td></tr>
-    <tr><td>エラーの読み方</td><td><a href="course.html#b4">初級「エラーと付き合う」</a></td></tr>
-    <tr><td>帳票のレイアウト</td><td><a href="course.html#i1">中級「帳票レイアウトの考え方」</a></td></tr>
-    <tr><td>AI に頼む</td><td><a href="course.html#i2">中級「AI と協働する」</a></td></tr>
-    <tr><td>テスト・git</td><td><a href="course.html#i3">中級「git」</a>・<a href="course.html#i4">「テストの考え方」</a></td></tr>
-  </table></div>
-  <p><b>次は、自分の仕事のデータベースで。</b>まず<a href="course.html#b5">学習コース 初級「自分のデータベースで始める」</a>を読んでから始めてください（バックアップの取り方など、気をつけることをまとめています）。</p>
-  <div class="next"><a href="index.html">← ホーム</a><a href="course.html">学習コースへ →</a></div>
+<section id="levels">
+  <h2>3 つの編</h2>
+  <div class="cards">
+    <a class="card" href="tutorial-basic.html">
+      <div class="k"><span class="badge lv1">初級</span></div><h3>基本操作</h3>
+      <p>取り出す → 編集する → 反映する → 動かす、の基本の流れ。スタンプカードと割り勘の関数を作り、わざとエラーを起こし、人気メニューのランキングを出し、帳票を見て、Access で注文画面を触ります。</p>
+      <div class="when">60〜75 分 ・ VS Code や VBA に慣れていなくても大丈夫</div>
+    </a>
+    <a class="card" href="tutorial-intermediate.html">
+      <div class="k"><span class="badge lv2">中級</span></div><h3>改修案件</h3>
+      <p>店長からの依頼を 3 件こなします。注文画面の税率の不具合修正、レシートのインボイス対応（帳票の項目追加・レイアウト修正）、AI に頼んで月次売上表を改良。</p>
+      <div class="when">60〜90 分 ・ 初級編を終えているか、VBA の改修経験があること</div>
+    </a>
+    <a class="card" href="tutorial-advanced.html">
+      <div class="k"><span class="badge lv3">上級</span></div><h3>自動テストと CI/CD</h3>
+      <p>テストを先に書いてから作る（TDD）、注文画面をキーボード操作で確かめる UI テスト、帳票の見た目の比較、整形とコミット前チェック、GitHub Actions、.accde の配布まで。</p>
+      <div class="when">60〜90 分 ・ git を少し使ったことがあると進めやすい</div>
+    </a>
+  </div>
+  <div class="next"><a href="index.html">← ホーム</a><a href="tutorial-basic.html">初級編から始める →</a></div>
 </section>
 </main>
 </div>

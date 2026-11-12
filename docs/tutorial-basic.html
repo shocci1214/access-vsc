@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>チュートリアル 初級編：基本操作 - Access VSC</title>
+<meta name="description" content="カフェの注文・売上管理のサンプルで、取り出す・編集する・反映する・動かすの基本を体験する初級編。">
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+<div class="topnav"><div class="in">
+  <a class="brand" href="index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5" rx="7" ry="2.6"/><path d="M3 5v13c0 1.4 3.1 2.6 7 2.6"/><path d="M17 5v4"/><path d="M3 11.5c0 1.4 3.1 2.6 7 2.6"/><path d="M13.5 21l3.5-9 3.5 9"/><path d="M14.8 18h4.4"/></svg><span>Access VSC</span></a>
+  <a class="tab" href="index.html">ホーム</a>
+  <a class="tab on" href="tutorial.html">チュートリアル</a>
+  <a class="tab" href="course.html">学習コース</a>
+  <a class="tab" href="reference.html">リファレンス</a>
+  <span class="sp"></span><button type="button" data-theme-toggle>ライト / ダーク</button>
+</div></div>
+
+<div class="layout">
+<nav class="toc" aria-label="目次">
+  <div class="h">初級編</div>
+  <ol>
+    <li><a href="#b0">0. 準備</a></li>
+    <li><a href="#b1">1. 取り出して中身を見る</a></li>
+    <li><a href="#b2">2. 今日のラッキーメニュー</a></li>
+    <li><a href="#b3">3. スタンプカードの関数</a></li>
+    <li><a href="#b4">4. わざと間違えてみる</a></li>
+    <li><a href="#b5">5. 人気メニューのランキング</a></li>
+    <li><a href="#b6">6. 帳票を見る</a></li>
+    <li><a href="#b7">7. Access で注文画面を触る</a></li>
+    <li><a href="#b8">8. まとめ</a></li>
+  </ol>
+  <div class="h">ほかの編</div>
+  <ol>
+    <li><a href="tutorial-intermediate.html">中級編：改修案件</a></li>
+    <li><a href="tutorial-advanced.html">上級編：自動テストと CI/CD</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kind">TUTORIAL ・ 初級編</div>
+  <h1>初級編：基本操作</h1>
+  <p>カフェ「こもれび」のデータベースを VS Code で開き、<b>取り出す → 編集する → 反映する → 動かす</b> の基本の流れを体験します。おみくじを引き、スタンプカードと割り勘の関数を作り、わざとエラーを起こし、人気メニューのランキングを出します。</p>
+  <div class="meta"><span class="pill">60〜75 分</span><span class="pill">上から順番に</span><span class="pill"><a href="tutorial.html">チュートリアルの入口へ</a></span></div>
+</header>
+
+<!-- ====================================================== -->
+<section id="b0">
+  <h2>0. 準備 <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>練習用サンプルを VS Code で開き、左の Access アイコンからサイドバーを表示する。</div>
+  <ol class="steps">
+    <li><b>拡張機能をインストールする（まだの場合）</b><a href="https://github.com/shocci1214/access-vsc/releases">Releases</a> から <code>.vsix</code> をダウンロードし、VS Code の拡張機能ビューの［…］→［VSIX からのインストール...］で選びます。</li>
+    <li><b>左端の Access アイコンを押す</b>データベースのアイコンに「A」が付いたものです。</li>
+    <li><b>「練習用サンプルを作る」を押す</b>サイドバーの「その他」の中、またはデータベースがまだないときに出る案内の中にあります。作る場所（例：ドキュメント）を選ぶと、その中に <code>AccessVSC-練習</code> フォルダができ、<code>cafe.accdb</code> が作られます（30 秒ほどかかります）。</li>
+    <li><b>「開く」を押す</b>新しい VS Code のウィンドウでサンプルのフォルダが開きます。以降はこのウィンドウで作業します。</li>
+  </ol>
+  <figure class="shot"><a href="images/b01-first.png" target="_blank"><img src="images/b01-first.png" alt="サンプルを開いたところ" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>サンプルを開いて Access アイコンを押したところ。まだ「取り出して」いないので、下の「オブジェクト」は空です。</figcaption></figure>
+  <div class="check">左に「かんたん操作」が表示され、一番上に <code>cafe.accdb</code> と出ている。</div>
+  <details class="trouble"><summary>うまくいかないとき</summary>
+    <ul>
+      <li>Access アイコンが出ない → <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> →「Reload Window」（再読み込み）</li>
+      <li>サンプルが作れない → Microsoft Access がインストールされているか確認。「その他」→「ログを表示」に原因が出ます</li>
+      <li>「このフォルダーの作成者を信頼しますか？」と聞かれた → 練習用サンプルなので［はい、作成者を信頼します］。信頼しないと、この拡張機能は動きません</li>
+    </ul>
+  </details>
+</section>
+
+<!-- ====================================================== -->
+<section id="b1">
+  <h2>1. 取り出して中身を見る <span class="pill">5 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>Access の中身をファイルに取り出し、どんなファイルになるかを見る。</div>
+  <ol class="steps">
+    <li><b>「① Access から取り出す」を押す</b>数秒で終わり、右下に「エクスポート完了」と出ます。<code>cafe.accdb</code> の隣に <code>cafe.accdb.src</code> フォルダができました。</li>
+    <li><b>「オブジェクト」の一覧を見る</b>モジュール・フォーム・レポート・クエリ・テーブルに分かれて並んでいます。</li>
+    <li><b>いくつか開いてみる</b>クリックすると右側に開きます。
+      <ul>
+        <li><code>modCafe</code> … いつもの VBA です。関数の上に「▶ Access で実行」が出ています</li>
+        <li><code>qrySalesDetail</code> … クエリの SQL です</li>
+        <li><code>rptReceipt</code> … レシートの設計図です。項目ごとに位置や大きさが数字で書かれています</li>
+        <li><code>frmOrder</code> … 注文入力の画面です。いちばん下の <code>CodeBehindForm</code> から後ろが、画面の VBA です</li>
+        <li>テーブルの <code>Products</code> … 項目名や型の一覧です（見るだけのファイル）</li>
+      </ul></li>
+  </ol>
+  <figure class="shot"><a href="images/b02-exported.png" target="_blank"><img src="images/b02-exported.png" alt="取り出した後" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>取り出した後。「オブジェクト」に一覧が出ます。</figcaption></figure>
+  <div class="check">「オブジェクト」に、モジュール 1・フォーム 1・レポート 2・クエリ 1・テーブル 4 が並んでいる。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="b2">
+  <h2>2. 今日のラッキーメニュー <span class="pill">5 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>VBA の関数を、VS Code から Access で動かす。</div>
+  <ol class="steps">
+    <li><b><code>modCafe</code> を開く</b>いちばん下に <code>PickOfTheDay</code>（今日のラッキーメニュー）という関数があります。日付からおみくじとメニューを決める関数です。</li>
+    <li><b>関数の上の「▶ Access で実行」を押す</b>引数の入力欄が出ます。この関数の引数（日付）は省略できるので、<b>空欄のまま Enter</b>。右下に <b>PickOfTheDay → "【小吉】今日のラッキーメニューは「…」！"</b> のように出ます（結果は日によって変わります）。</li>
+    <li><b>日付を指定して実行</b>もう一度「▶ Access で実行」を押し、今度は <code>"2026/04/01"</code>（ダブルクォートで囲む）と入力して Enter。<b>【中吉】今日のラッキーメニューは「カフェラテ」！</b> と出ます。同じ日付なら何度やっても同じ結果です。</li>
+  </ol>
+  <figure class="shot"><a href="images/b03-lucky.png" target="_blank"><img src="images/b03-lucky.png" alt="ラッキーメニューの実行結果" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>実行結果。右下の通知と、下の「出力」に表示されます。</figcaption></figure>
+  <div class="check">2026/04/01 を指定すると「【中吉】…カフェラテ」が返ってくる。</div>
+  <div class="callout note"><b>裏で何が起きている？</b>「▶ Access で実行」を押すと、見えないところで Access が起動し、<code>cafe.accdb</code> を開いて関数を実行し、結果を VS Code に返して終了します。Access の画面を開く必要はありません。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="b3">
+  <h2>3. スタンプカードの関数 <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>新しいモジュールに関数を書き、Access に反映して実行する。</div>
+  <p>こもれびのスタンプカードは、10 個たまるとドリンクが 1 杯無料です。レジで「あと何個？」を表示するための関数を作ります。</p>
+  <ol class="steps">
+    <li><b>新しいモジュールのファイルを作る</b>左上のファイルのアイコン（エクスプローラー）を押し、<code>cafe.accdb.src</code> → <code>modules</code> フォルダを右クリック →［新しいファイル］→ <code>modTools.bas</code> と入力して Enter。<br>ファイル名（<code>.bas</code> を除いた部分）がそのままモジュール名になります。</li>
+    <li><b>次のコードを書いて保存（<kbd>Ctrl</kbd>+<kbd>S</kbd>）</b>
+<pre><code>Option Compare Database
+Option Explicit
+
+' スタンプカードのメッセージ（10 個でドリンク 1 杯無料）
+Public Function StampMessage(ByVal stamps As Long) As String
+    If stamps >= 10 Then
+        StampMessage = "おめでとうございます！ドリンク 1 杯無料です"
+    Else
+        StampMessage = "あと " &amp; (10 - stamps) &amp; " 個でドリンク 1 杯無料！"
+    End If
+End Function</code></pre>
+      左の Access アイコンに戻ると、<code>modTools</code> に「＋ 新規（未反映）」と出ています。画面の一番下にも、まだ反映していない数が表示されます。</li>
+    <li><b>「③ Access へ反映する」を押す</b>右下に「インポート 1 件 / コンパイル OK」と出れば成功です。</li>
+    <li><b>関数の上の「▶ Access で実行」を押し、<code>7</code> と入力</b>右下に <b>"あと 3 個でドリンク 1 杯無料！"</b> と出ます。</li>
+    <li><b>もう一度、今度は <code>10</code> で実行</b><b>"おめでとうございます！ドリンク 1 杯無料です"</b> と出ます。</li>
+  </ol>
+  <figure class="shot"><a href="images/b04-new-module.png" target="_blank"><img src="images/b04-new-module.png" alt="新しいモジュール" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>保存した直後。「＋ 新規（未反映）」と、画面下に未反映の数。</figcaption></figure>
+  <figure class="shot"><a href="images/b05-stamp-result.png" target="_blank"><img src="images/b05-stamp-result.png" alt="スタンプの実行結果" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>7 を渡して実行した結果。</figcaption></figure>
+  <div class="check">7 で実行すると「あと 3 個で…」、10 で実行すると「おめでとうございます！…」が返ってくる。</div>
+  <details class="trouble"><summary>うまくいかないとき</summary>
+    <ul>
+      <li>「データベースが Access などで開かれています」 → Access の画面で cafe.accdb を開いていたら閉じる</li>
+      <li>「▶ Access で実行」が出ない → ファイル名の拡張子が <code>.bas</code> か、<code>modules</code> フォルダの中かを確認</li>
+      <li>文字列を渡したいときは <code>"山田"</code> のようにダブルクォートで囲みます</li>
+    </ul>
+  </details>
+</section>
+
+<!-- ====================================================== -->
+<section id="b4">
+  <h2>4. わざと間違えてみる <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>コンパイル エラーと実行時エラーが、どこにどう表示されるかを知る。</div>
+  <h3>コンパイル エラー（書き間違い）</h3>
+  <ol class="steps">
+    <li><b>変数名を間違える</b><code>(10 - stamps)</code> を <code>(10 - stanps)</code> に書き換えて保存。</li>
+    <li><b>「③ Access へ反映する」</b>その行に<b>赤い波線</b>が付き、右下に「コンパイル エラー: 変数が定義されていません。（modTools.bas の 9 行目）」と出ます。</li>
+    <li><b>元に戻して、もう一度反映</b>「コンパイル OK」に戻れば大丈夫です。</li>
+  </ol>
+  <figure class="shot"><a href="images/b06-compile-error.png" target="_blank"><img src="images/b06-compile-error.png" alt="コンパイル エラー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>コンパイル エラー。間違えた行に赤い波線、右下にエラーの内容と行番号。</figcaption></figure>
+
+  <h3>実行時エラー（動かしたときのエラー）</h3>
+  <p>次は割り勘の計算です。お会計を人数で割り、1 円未満は切り上げます（端数はお店ではなくお客さま側で多めに払う、という決まりにします）。</p>
+  <ol class="steps">
+    <li><b><code>modTools.bas</code> の最後に、割り勘の関数を足して保存</b>
+<pre><code>' 割り勘（1 人分。1 円未満は切り上げ）
+Public Function SplitBill(ByVal total As Currency, ByVal people As Long) As Currency
+    SplitBill = -Int(-total / people)
+End Function</code></pre>
+      <code>-Int(-x)</code> は「切り上げ」の定番の書き方です。</li>
+    <li><b>反映して、<code>SplitBill</code> を引数 <code>2719, 3</code> で実行</b>2,719 円を 3 人で割ると 906.33… なので、<b>907</b> になります。</li>
+    <li><b>今度は <code>2719, 0</code> で実行</b>0 人で割ったので、割り算の行に赤い波線が付き、「実行時エラー '11': 0 で除算しました。」と出ます。<br>（Access の画面だとエラーのダイアログで止まるところですが、自動で閉じてエラーの場所を教えてくれます。）</li>
+    <li><b>人数が 0 以下のときは 0 を返すように直す</b>
+<pre><code>Public Function SplitBill(ByVal total As Currency, ByVal people As Long) As Currency
+    If people &lt;= 0 Then
+        SplitBill = 0
+        Exit Function
+    End If
+    SplitBill = -Int(-total / people)
+End Function</code></pre>
+      保存 → 反映 → 同じ引数で実行すると、<b>0</b> が返ります。</li>
+  </ol>
+  <figure class="shot"><a href="images/b07-runtime-error.png" target="_blank"><img src="images/b07-runtime-error.png" alt="実行時エラー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>実行時エラー。エラーが起きた行に赤い波線。</figcaption></figure>
+  <div class="check">コンパイル エラーは「反映したとき」、実行時エラーは「実行したとき」に、どちらも該当の行に赤い波線で出ることがわかった。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="b5">
+  <h2>5. 人気メニューのランキング <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>テーブルの中身を確認し、新しいクエリを SQL で作って動かす。</div>
+  <ol class="steps">
+    <li><b>テーブルの中身を見る</b>「オブジェクト」→「テーブル」を開き、<code>Members</code> にマウスを乗せて右端の ▶ を押すと、会員とスタンプの数が表で表示されます。山田 花子さんはスタンプ 8 個。さっきの関数なら「あと 2 個」ですね。</li>
+    <li><b>新しいクエリのファイルを作る</b><code>queries</code> フォルダに <code>qryRanking.sql</code> を作り、次を書いて保存。
+<pre><code>SELECT p.ProductName, Sum(d.Qty) AS TotalQty
+FROM OrderDetails AS d
+  INNER JOIN Products AS p ON d.ProductID = p.ID
+GROUP BY p.ProductName
+ORDER BY Sum(d.Qty) DESC;</code></pre></li>
+    <li><b>「③ Access へ反映する」</b>Access に <code>qryRanking</code> というクエリができます。</li>
+    <li><b>クエリの ▶ で実行</b>メニューごとの注文数が、多い順に表示されます。</li>
+  </ol>
+  <figure class="shot"><a href="images/b08-ranking.png" target="_blank"><img src="images/b08-ranking.png" alt="ランキングの結果" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>作ったクエリを ▶ で実行した結果。</figcaption></figure>
+  <div class="check">1 位がブレンドコーヒー（7 杯）、2 位がチーズケーキ（6 個）になっている。</div>
+  <div class="callout note"><b>データは書き換わりません</b>ここで実行できるのは、データを読むだけの SELECT です。<code>.sql</code> を開いたときに上に出る「▶ この SQL を実行」でも、保存前に試せます。</div>
+  <div class="callout tip"><b>（やってみよう）テイクアウトだけのランキング</b><code>INNER JOIN</code> の行の下に <code>WHERE d.Takeout = True</code> を足して実行してみましょう。持ち帰りで人気なのはどれでしょう？</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="b6">
+  <h2>6. 帳票を見る <span class="pill">5 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>レポートの印刷イメージを VS Code の中で見る。</div>
+  <ol class="steps">
+    <li><b>月次売上を見る</b>「オブジェクト」→「レポート」の <code>rptMonthlySales</code> にある<b>プレビュー</b>ボタン（目のアイコン）を押すと、印刷イメージが画像で表示されます。分類（デザート・ドリンク・フード）ごとに小計が出ています。</li>
+    <li><b>レシートを見る</b><code>rptReceipt</code> のプレビュー。注文 1 件が 1 ページで、No.1 から No.12 まで並びます。</li>
+    <li><b>レポートのファイルを開いてみる</b><code>rptReceipt</code> をクリック。<code>Begin Label</code> や <code>Begin TextBox</code> のかたまりが 1 つの項目で、<code>Left</code>（左からの位置）・<code>Top</code>（上からの位置）・<code>Width</code>（幅）などが数字で書かれています。単位は twip で、<b>1 cm = 567</b> です。中級編では、ここを書き換えて帳票を直します。</li>
+  </ol>
+  <figure class="shot"><a href="images/b09-monthly.png" target="_blank"><img src="images/b09-monthly.png" alt="月次売上のプレビュー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>月次売上のプレビュー。分類ごとの小計つき。</figcaption></figure>
+  <div class="check">月次売上の小計が、デザート 6,800・ドリンク 8,000・フード 4,000 になっている。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="b7">
+  <h2>7. Access で注文画面を触る <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>Access の画面でフォームを動かし、終わったら閉じる（ここが大事）。</div>
+  <ol class="steps">
+    <li><b>「確認する」→「Access で開く」</b>いつもの Access の画面で cafe.accdb が開きます。</li>
+    <li><b>左のナビゲーション ウィンドウから <code>frmOrder</code> を開く</b>注文入力の画面です。</li>
+    <li><b>「今日のラッキーメニュー」を押す</b>下に今日のおみくじが出ます。2 で作った関数が、画面のボタンから呼ばれています。</li>
+    <li><b>注文を計算する</b>商品で「カフェラテ」を選び、数量に <code>2</code> を入れて「計算」。税抜金額 1,000・税込金額 <b>1,100</b>（店内なので 10%）です。</li>
+    <li><b>テイクアウトにしてみる</b>「テイクアウト（持ち帰り）」にチェックを入れて、もう一度「計算」。テイクアウトは軽減税率 8% なので 1,080 になるはずですが…<b>1,100 のまま</b>です。<br>実はこれが、<a href="tutorial-intermediate.html">中級編</a>で直す「店長からの問い合わせ」です。</li>
+    <li><b>Access を閉じる</b>右上の × で Access を終了します。</li>
+  </ol>
+  <div class="callout warn"><b>Access で開いたままだと、反映できません</b>Access の画面でデータベースを開いている間は、「③ Access へ反映する」などの書き込みが「データベースが Access などで開かれています」で止まります（壊さないための安全装置です）。Access で確かめたら、必ず閉じてから VS Code に戻りましょう。</div>
+  <div class="check">ラッキーメニューのボタンが動き、テイクアウトでも 1,100 のままになることを確かめた。Access を閉じた。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="b8">
+  <h2>8. まとめ <span class="pill">5 分</span></h2>
+  <p>初級編でやったこと：</p>
+  <div class="table-wrap"><table>
+    <tr><th>やったこと</th><th>使ったもの</th><th>もっと知るには</th></tr>
+    <tr><td>取り出す・編集・反映・実行</td><td>①〜③のボタン、▶ Access で実行</td><td><a href="course.html#b2">学習コース 初級「毎日の流れ」</a></td></tr>
+    <tr><td>エラーの読み方</td><td>赤い波線、問題パネル</td><td><a href="course.html#b4">初級「エラーと付き合う」</a></td></tr>
+    <tr><td>クエリ</td><td><code>queries/*.sql</code>、▶ で実行</td><td><a href="reference.html#formats">リファレンス「ファイルの書き方」</a></td></tr>
+    <tr><td>帳票を見る</td><td>プレビュー</td><td><a href="course.html#i1">中級「帳票レイアウトの考え方」</a></td></tr>
+  </table></div>
+  <div class="callout tip"><b>（おまけ）AI に聞いてみる</b>Claude Code や GitHub Copilot を使っているなら、サイドバーの「AI と使う」→「AI エージェント連携を設定」をしておくと、「スタンプが 20 個なら 2 杯無料、にして」のように頼めます。本格的には中級編で。</div>
+  <div class="next"><a href="tutorial.html">← チュートリアルの入口</a><a href="tutorial-intermediate.html">中級編：改修案件へ →</a></div>
+</section>
+</main>
+</div>
+<a class="back" href="#">▲ 先頭へ</a>
+<script src="assets/docs.js"></script>
+</body>
+</html>

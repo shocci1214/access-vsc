@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>チュートリアル 上級編：自動テストと CI/CD - Access VSC</title>
+<meta name="description" content="カフェのサンプルで、テスト駆動の関数づくり、フォームの UI テスト、帳票の見た目の比較、整形とコミット前チェック、GitHub Actions、.accde の配布までを体験する上級編。">
+<link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+<div class="topnav"><div class="in">
+  <a class="brand" href="index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="10" cy="5" rx="7" ry="2.6"/><path d="M3 5v13c0 1.4 3.1 2.6 7 2.6"/><path d="M17 5v4"/><path d="M3 11.5c0 1.4 3.1 2.6 7 2.6"/><path d="M13.5 21l3.5-9 3.5 9"/><path d="M14.8 18h4.4"/></svg><span>Access VSC</span></a>
+  <a class="tab" href="index.html">ホーム</a>
+  <a class="tab on" href="tutorial.html">チュートリアル</a>
+  <a class="tab" href="course.html">学習コース</a>
+  <a class="tab" href="reference.html">リファレンス</a>
+  <span class="sp"></span><button type="button" data-theme-toggle>ライト / ダーク</button>
+</div></div>
+
+<div class="layout">
+<nav class="toc" aria-label="目次">
+  <div class="h">上級編</div>
+  <ol>
+    <li><a href="#a0">0. 準備</a></li>
+    <li><a href="#a1">1. テストの準備</a></li>
+    <li><a href="#a2">2. テストを先に書く</a></li>
+    <li><a href="#a3">3. 画面を操作する UI テスト</a></li>
+    <li><a href="#a4">4. 帳票の見た目を比べる</a></li>
+    <li><a href="#a5">5. 整形とコミット前チェック</a></li>
+    <li><a href="#a6">6. GitHub Actions</a></li>
+    <li><a href="#a7">7. お店の PC に配布する</a></li>
+    <li><a href="#a8">8. まとめ</a></li>
+  </ol>
+  <div class="h">ほかの編</div>
+  <ol>
+    <li><a href="tutorial-basic.html">初級編：基本操作</a></li>
+    <li><a href="tutorial-intermediate.html">中級編：改修案件</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="kind">TUTORIAL ・ 上級編</div>
+  <h1>上級編：自動テストと CI/CD</h1>
+  <p>手で確かめていたことを<b>自動テスト</b>にして、変更のたびに機械が確かめる仕組みを作ります。テストを先に書いて関数を作り、注文画面をキーボード操作で確かめ、帳票の見た目の変化を検出し、最後に .accde をお店の PC に配ります。</p>
+  <div class="meta"><span class="pill">60〜90 分</span><span class="pill">前提：<a href="tutorial-basic.html">初級編</a>の操作がわかること（中級編はやっていなくても大丈夫）</span></div>
+</header>
+
+<!-- ====================================================== -->
+<section id="a0">
+  <h2>0. 準備 <span class="pill">5 分</span></h2>
+  <ol class="steps">
+    <li><b>新しい練習用サンプルを作って開く</b>Access アイコン →「その他」→「練習用サンプルを作る」（既にあれば「新しく作る」）→「開く」。</li>
+    <li><b>「① Access から取り出す」</b></li>
+  </ol>
+  <div class="callout note"><b>このサンプルには不具合が残っています</b>注文画面の「テイクアウトでも税率が 10% のまま」という不具合（中級編の案件 1）は、まっさらなサンプルでは直っていません。3 の UI テストで、これをテストで見つけてから直します。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a1">
+  <h2>1. テストの準備 <span class="pill">5 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>テスト用のモジュールと、CI/CD のファイル一式を追加し、例のテストを動かす。</div>
+  <ol class="steps">
+    <li><b>「テスト・品質」→「テスト・CI/CD を準備」</b>「git を始めますか？」と聞かれたら［git を始める］。次のものが追加されます。
+      <div class="table-wrap"><table>
+        <tr><th>ファイル</th><th>役割</th></tr>
+        <tr><td><code>modules/Assert.bas</code></td><td>テストで値を確かめる（<code>Assert.AreEqual 期待値, 実際</code> など）</td></tr>
+        <tr><td><code>modules/UI.bas</code></td><td>フォームを操作するテスト用（フォームがある DB だけ）</td></tr>
+        <tr><td><code>modules/Test_Example.bas</code></td><td>テストの例</td></tr>
+        <tr><td><code>.github/workflows/access-ci.yml</code></td><td>GitHub Actions の設定</td></tr>
+        <tr><td><code>.githooks/pre-commit</code></td><td>コミット前のコードチェック</td></tr>
+        <tr><td><code>tools/access-vsc/</code></td><td>CI で使うスクリプト一式</td></tr>
+      </table></div></li>
+    <li><b>「反映してテストしますか？」→［反映してテスト］</b>左に「テスト」の画面が開き、例のテスト 3 つが ✔ になります。</li>
+  </ol>
+  <figure class="shot"><a href="images/a01-setup-ci.png" target="_blank"><img src="images/a01-setup-ci.png" alt="テスト・CI/CD の準備" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>準備が終わると、追加したものと次にやることが表示されます。</figcaption></figure>
+  <div class="check">「テスト」の画面で、Test_Example の 3 つが ✔ になっている。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a2">
+  <h2>2. テストを先に書く（TDD） <span class="pill">15 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>「どうなれば正しいか」をテストで先に決めてから、関数を作る。</div>
+  <p>作るのは、レシートの合計（税込）を求める関数 <code>ReceiptTotal</code> です。インボイスのルールでは、<b>税率ごとに合計してから、それぞれ 1 回だけ端数を処理</b>します。1 行ずつ税を計算して足すと、合計が 1 円ずれることがあります。</p>
+  <ol class="steps">
+    <li><b>先にテストを書く</b><code>modules</code> に <code>Test_Cafe.bas</code> を作り、次を書いて保存。
+<pre><code>Option Compare Database
+Option Explicit
+
+Public Sub Test_TaxIncluded_EatIn()
+    Assert.AreEqual 550, TaxIncluded(500, False)
+End Sub
+
+Public Sub Test_TaxIncluded_Takeout()
+    Assert.AreEqual 540, TaxIncluded(500, True)
+End Sub
+
+Public Sub Test_TaxIncluded_RoundDown()
+    Assert.AreEqual 106, TaxIncluded(99, True), "1 円未満は切り捨て（106.92 → 106）"
+End Sub
+
+' 注文 No.1：店内 1,530 円（10%）＋ 持ち帰り 960 円（8%）
+Public Sub Test_ReceiptTotal_Mixed()
+    Assert.AreEqual 2719, ReceiptTotal(1)
+End Sub
+
+' 注文 No.4：店内だけ 930 円
+Public Sub Test_ReceiptTotal_EatInOnly()
+    Assert.AreEqual 1023, ReceiptTotal(4)
+End Sub</code></pre></li>
+    <li><b>反映する → 失敗する（Red）</b>「コンパイル エラー: Sub または Function が定義されていません。」<code>ReceiptTotal</code> をまだ作っていないので当然です。テストが「まだできていない」ことを教えてくれました。</li>
+    <li><b>関数を作る</b><code>modCafe</code> の最後に足して保存。
+<pre><code>' レシートの合計（税込）。税率ごとに合計してから、それぞれ 1 回だけ端数を切り捨てる
+Public Function ReceiptTotal(ByVal orderId As Long) As Currency
+    Dim reduced As Currency
+    Dim standard As Currency
+    reduced = Nz(DSum("Amount", "qrySalesDetail", "OrderID=" &amp; orderId &amp; " AND Takeout=True"), 0)
+    standard = Nz(DSum("Amount", "qrySalesDetail", "OrderID=" &amp; orderId &amp; " AND Takeout=False"), 0)
+    ReceiptTotal = reduced + standard + Int(reduced * 0.08) + Int(standard * 0.1)
+End Function</code></pre></li>
+    <li><b>反映して「テストを実行」→ すべて ✔（Green）</b>レシートの帳票に出ている合計（No.1 は 2,719）と同じ値を、関数でも計算できるようになりました。</li>
+  </ol>
+  <figure class="shot"><a href="images/a02-tdd-red.png" target="_blank"><img src="images/a02-tdd-red.png" alt="関数がまだないので失敗" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>テストを先に書いて反映したところ。まだない関数の行に赤い波線。</figcaption></figure>
+  <div class="check">Test_Cafe の 5 つと Test_Example の 3 つ、合わせて 8 つが ✔。</div>
+  <div class="callout note"><b>テストは DB のコピーで動きます</b>テストは、データベースのコピーの上で実行されます。テストの中でデータを書き換えても、元の cafe.accdb は変わりません。注文データを使うテストも安心して書けます。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a3">
+  <h2>3. 画面を操作する UI テスト <span class="pill">15 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>注文画面を「キーボードで操作するように」動かすテストで、不具合を見つけて直す。</div>
+  <p><code>UI</code> モジュールを使うと、テストの中でフォームを開き、入力し、ボタンを押せます。人がキーボードで操作するのと同じなので、ボタンのクリックや更新後処理のイベントも実際に動きます。</p>
+  <ol class="steps">
+    <li><b><code>modules</code> に <code>Test_OrderForm.bas</code> を作って保存</b>
+<pre><code>Option Compare Database
+Option Explicit
+
+' 店内は 10%：カフェラテ 500 円 × 2 = 1,000 円 → 1,100 円
+Public Sub Test_EatIn_UsesStandardRate()
+    UI.OpenForm "frmOrder"
+    UI.TypeText "cboProduct", "カフェラテ"
+    UI.TypeText "txtQty", "2"
+    UI.Click "cmdCalc"
+    Assert.AreEqual 1100, UI.Value("txtTotal")
+End Sub
+
+' テイクアウトは軽減税率 8%：1,000 円 → 1,080 円
+Public Sub Test_Takeout_UsesReducedRate()
+    UI.OpenForm "frmOrder"
+    UI.TypeText "cboProduct", "カフェラテ"
+    UI.TypeText "txtQty", "2"
+    UI.Click "chkTakeout"
+    UI.Click "cmdCalc"
+    Assert.AreEqual 1080, UI.Value("txtTotal")
+End Sub
+
+' ボタンを押すと、今日のラッキーメニューが出る
+Public Sub Test_LuckyMenu()
+    UI.OpenForm "frmOrder"
+    UI.Click "cmdPick"
+    Assert.IsTrue UI.Form.lblPick.Caption Like "【*】今日のラッキーメニューは「*」！"
+End Sub
+
+' 各テストの後でフォームを閉じる
+Public Sub TestTeardown()
+    UI.CloseForm "frmOrder"
+End Sub</code></pre>
+      <code>UI.TypeText</code> は入力して Tab で確定、<code>UI.Click</code> はボタンを押す（チェックボックスなら切り替え）です。</li>
+    <li><b>反映して「テストを実行」</b>テストの間、タスクバーに Access が出ます（画面の外で動くので、触らずに待ちます）。<b>Test_Takeout_UsesReducedRate だけ ✘</b> になり、「期待値 1080 / 実際 1100」と表示されます。初級編で見つけた不具合を、テストが見つけました。</li>
+    <li><b>不具合を直す</b><code>frmOrder</code> のファイルで <code>TaxIncluded(Me.txtSubtotal, False)</code> を探し、<code>TaxIncluded(Me.txtSubtotal, Nz(Me.chkTakeout, False))</code> に直して保存（中級編の案件 1 と同じ修正です）。</li>
+    <li><b>反映してテスト → すべて ✔</b>これで、今後だれかがこの計算を壊したら、テストがすぐに教えてくれます。</li>
+  </ol>
+  <figure class="shot"><a href="images/a03-ui-test.png" target="_blank"><img src="images/a03-ui-test.png" alt="UI テストの失敗" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>UI テストが不具合を見つけたところ。期待値と実際の値が並びます。</figcaption></figure>
+  <div class="check">直す前は Test_Takeout_UsesReducedRate が ✘（実際 1100）、直した後は全部 ✔。</div>
+  <div class="callout tip"><b>UI テストのコツ</b>
+    <ul style="margin:4px 0 0">
+      <li>値を <code>Forms!frmOrder!txtQty = 2</code> のように直接入れると、更新後処理などのイベントは<b>動きません</b>。画面の動きを確かめたいときは <code>UI.TypeText</code> を使います</li>
+      <li>ボタンで MsgBox が出ても、自動で答えます（確認の質問には安全側の「キャンセル」／「いいえ」）</li>
+      <li>InputBox や <code>acDialog</code> で開くフォームは止まってしまうので、テストでは開かないようにします</li>
+      <li>中級編の「自動で再計算」もやったなら、「計算」ボタンを押さずに金額が変わることもテストできます</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a4">
+  <h2>4. 帳票の見た目を比べる <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>帳票の見た目を基準として記録し、変わったときに差分を見る。</div>
+  <ol class="steps">
+    <li><b>「テスト・品質」→「帳票の見た目を比較」</b>初回は 2 つとも「基準なし」です。画像を確認して［すべて基準にする］。基準の画像は <code>cafe.accdb.src/snapshots</code> に保存され、git で記録できます。</li>
+    <li><b>レシートの店名を変える</b><code>rptReceipt</code> のファイルで <code>Caption ="カフェ こもれび"</code> を <code>Caption ="カフェ こもれび 駅前店"</code> に変えて保存 → 反映。</li>
+    <li><b>もう一度「帳票の見た目を比較」</b><code>rptReceipt</code> が「変化あり」、<code>rptMonthlySales</code> は「同じ」。変わった所が赤で示されます。</li>
+    <li><b>意図した変更なら［この見た目を基準にする］</b>意図しない変化なら、原因を探して直します。</li>
+  </ol>
+  <figure class="shot"><a href="images/a04-snapshot.png" target="_blank"><img src="images/a04-snapshot.png" alt="帳票の見た目の比較" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>基準・今・差分（赤＝違う所）が並びます。</figcaption></figure>
+  <div class="check">店名を変えたレシートだけが「変化あり」になった。</div>
+  <div class="callout note"><b>どんなときに役立つ？</b>クエリや VBA の関数を直したら、思わぬ帳票の数字や配置が変わっていた、という事故を防げます。印刷日付のように毎回変わる項目がある帳票は、リファレンスの「帳票スナップショット」にあるしきい値で調整します。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a5">
+  <h2>5. 整形とコミット前チェック <span class="pill">10 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>コードの見た目をそろえ、問題のあるコードがコミットされないようにする。</div>
+  <h3>整形</h3>
+  <ol class="steps">
+    <li><b>わざと字下げを崩す</b><code>modCafe</code> の <code>TaxRate</code> の中の行の先頭の空白を消して保存。問題パネルに「インデントが整っていません」（情報）が出ます。</li>
+    <li><b><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>（ドキュメントのフォーマット）</b>字下げが元どおりにそろいます。変わるのは行頭と行末の空白だけです。AI が書いたコードも、これでそろえられます。</li>
+  </ol>
+  <h3>コミット前チェック</h3>
+  <ol class="steps">
+    <li><b>Access に入らない文字を書いてみる</b><code>modCafe</code> の <code>PickOfTheDay</code> の「！」の後ろに絵文字「☕」を足して保存。問題パネルに「Shift-JIS で表せない文字」（エラー）が出ます。Access の VBA は Shift-JIS なので、反映すると「?」に化けてしまいます。</li>
+    <li><b>このままコミットしてみる</b>［ソース管理］でコミットすると、<b>「コードチェックでエラーがあります」で止まります</b>。間違いが記録に入るのを防ぐ、コミット前のチェックです。</li>
+    <li><b>絵文字を消して保存し、コミット</b>今度はコミットできます。</li>
+  </ol>
+  <div class="check">整形で字下げがそろい、エラーがある間はコミットが止まった。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a6">
+  <h2>6. GitHub Actions <span class="pill">10 分（読むだけでも OK）</span></h2>
+  <div class="goalbox"><b>ゴール：</b>push したら自動でチェック・テストが動く仕組みを知る。</div>
+  <p>1 で作られた <code>.github/workflows/access-ci.yml</code> には、2 つの仕事（ジョブ）が書かれています。</p>
+  <div class="table-wrap"><table>
+    <tr><th>ジョブ</th><th>やること</th><th>動く場所</th></tr>
+    <tr><td>lint</td><td>コードチェック（Access 不要）</td><td>GitHub のクラウド（そのまま動く）</td></tr>
+    <tr><td>test</td><td>.accdb にソースを反映 → コンパイル → テスト（UI テストも）→ 結果を表示</td><td>Access を入れた Windows PC（セルフホストランナー）</td></tr>
+  </table></div>
+  <ol class="steps">
+    <li><b>GitHub に非公開のリポジトリを作って push</b>［ソース管理］の［ブランチの発行］から作れます。<code>cafe.accdb</code> もコミットしておきます（CI はコミットされた .accdb にソースを反映してテストします）。</li>
+    <li><b>Actions タブを見る</b>lint のジョブが動き、✔ になります。</li>
+    <li><b>（任意）test を動かす</b>Access の入った PC を、GitHub の Settings → Actions → Runners でセルフホストランナーとして登録し、ラベル <code>access</code> を付けます。サービスではなく、ログオンしたユーザーで <code>run.cmd</code> を起動しておきます（Office の自動操作はサービスでは動かないため）。</li>
+  </ol>
+  <div class="callout warn"><b>公開リポジトリでは注意</b>セルフホストランナーでは、push されたコードが自分の PC で動きます。テンプレートは、フォーク（他人）からのプルリクエストでは test を動かさない設定にしてありますが、公開リポジトリでは Settings → Actions で「外部のコントリビューターのワークフローに承認を必須にする」も設定してください。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a7">
+  <h2>7. お店の PC に配布する <span class="pill">15 分</span></h2>
+  <div class="goalbox"><b>ゴール：</b>.accde を作って共有フォルダに公開し、利用者側で最新版が起動することを確かめる。</div>
+  <p>本番では、お店の PC から見える共有フォルダ（例：<code>\\server\share\Komorebi</code>）に置きます。ここでは練習として、自分の PC のフォルダを共有フォルダに見立てます。</p>
+  <ol class="steps">
+    <li><b>配布先のフォルダを作る</b>エクスプローラーで、例えば <code>C:\work\cafe-share</code> を作ります（配布先は先に存在している必要があります）。</li>
+    <li><b>「配布」→「配布の設定」</b>アプリ名 <code>Komorebi</code>、配布先に作ったフォルダ、リンクテーブルは「そのまま」。<code>access-deploy.json</code> ができます。</li>
+    <li><b>「リリースを作成」</b>版番号に <code>1.0.0</code>。版番号の書き込み → コンパイル → <code>dist/Komorebi_1.0.0.accde</code> が作られます。</li>
+    <li><b>「配布する」</b>今作った <code>Komorebi_1.0.0.accde</code> を選び、確認して公開。配布先に <code>Start-Komorebi.cmd</code>（起動用）と <code>app/</code>・<code>releases/</code> ができます。</li>
+    <li><b><code>Start-Komorebi.cmd</code> をダブルクリック</b>利用者の PC にコピーされて、アプリが起動します（.accde なので、コードやデザインは変更できません）。ナビゲーション ウィンドウから <code>frmOrder</code> を開いて、テイクアウトの計算が直っていることを確かめたら閉じます。</li>
+    <li><b>更新してみる</b>何か直して反映 → 版番号 <code>1.0.1</code> でリリースを作成 → 配布。もう一度 <code>Start-Komorebi.cmd</code> を起動すると、新しい版に入れ替わってから起動します。</li>
+  </ol>
+  <div class="check">配布先の Start-Komorebi.cmd からアプリが起動し、更新を配布すると次の起動で新しい版になった。</div>
+  <div class="callout note"><b>配布は人が行う</b>AI は .accde の作成（<code>access_build</code>）まではできますが、配布はしません。利用者に影響する操作は、人が確認してから行う決まりにしています。</div>
+</section>
+
+<!-- ====================================================== -->
+<section id="a8">
+  <h2>8. まとめ</h2>
+  <div class="table-wrap"><table>
+    <tr><th>仕組み</th><th>確かめること</th><th>いつ動く</th></tr>
+    <tr><td>ユニットテスト（Assert）</td><td>関数の計算が正しいか</td><td>「テストを実行」・CI</td></tr>
+    <tr><td>UI テスト（UI）</td><td>画面の操作とイベントが正しく動くか</td><td>「テストを実行」・CI</td></tr>
+    <tr><td>帳票スナップショット</td><td>帳票の見た目が意図せず変わっていないか</td><td>「帳票の見た目を比較」・CI</td></tr>
+    <tr><td>コードチェック・整形</td><td>Shift-JIS・宣言・字下げ・レイアウト</td><td>保存したとき・コミット前・CI</td></tr>
+    <tr><td>配布</td><td>版番号つきの .accde を、利用者に安全に届ける</td><td>人が「配布する」を押したとき</td></tr>
+  </table></div>
+  <p>チームで運用するときの考え方は、<a href="course.html#advanced">学習コース 上級</a>にまとめています。ボタン・設定・ファイルの詳しい説明は<a href="reference.html">リファレンス</a>へ。</p>
+  <div class="next"><a href="tutorial-intermediate.html">← 中級編</a><a href="course.html">学習コースへ →</a></div>
+</section>
+</main>
+</div>
+<a class="back" href="#">▲ 先頭へ</a>
+<script src="assets/docs.js"></script>
+</body>
+</html>

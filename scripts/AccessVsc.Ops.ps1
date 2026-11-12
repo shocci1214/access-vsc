@@ -537,7 +537,19 @@ function Invoke-ImportOp($app, $P) {
 # ============================================================
 # 実行・評価・SQL・一覧
 # ============================================================
+# コンパイルできない VBA を実行すると、エラーのダイアログが出て時間切れまで待つことになる。先に確かめて、エラーの場所を返す
+function Test-CompiledBeforeRun($app) {
+    if ($app.IsCompiled) { return $null }
+    try { $app.RunCommand(125) } catch {}   # コンパイル（保存はしない）
+    if ($app.IsCompiled) { return $null }
+    $c = Invoke-Compile $app
+    if ($c.compiled) { return $null }
+    return [ordered]@{ ok = $false; result = [ordered]@{ compile = $c }; error = 'The VBA project does not compile, so it cannot run. Fix the compile error first (see result.compile).' }
+}
+
 function Invoke-RunOp($app, $P) {
+    $notCompiled = Test-CompiledBeforeRun $app
+    if ($notCompiled) { return $notCompiled }
     $argv = New-Object System.Collections.ArrayList
     [void]$argv.Add([string]$P.function)
     foreach ($a in @($P.args)) { if ($null -ne $a) { [void]$argv.Add($a) } }
@@ -546,6 +558,8 @@ function Invoke-RunOp($app, $P) {
 }
 
 function Invoke-EvalOp($app, $P) {
+    $notCompiled = Test-CompiledBeforeRun $app
+    if ($notCompiled) { return $notCompiled }
     $v = $app.Eval([string]$P.expression)
     return [ordered]@{ ok = $true; result = [ordered]@{ expression = $P.expression; value = (ConvertTo-PlainValue $v); type = $(if ($null -ne $v) { $v.GetType().Name } else { 'Null' }) } }
 }

@@ -35,7 +35,7 @@
   </ol>
   <div class="h">品質・配布</div>
   <ol>
-    <li><a href="#assert">Assert</a></li>
+    <li><a href="#assert">Assert・UI</a></li>
     <li><a href="#tests">テストの決まり</a></li>
     <li><a href="#lint">コードチェックの項目</a></li>
     <li><a href="#snapshot">帳票スナップショット</a></li>
@@ -58,14 +58,14 @@
   <div class="kind">REFERENCE</div>
   <h1>リファレンス</h1>
   <p>ボタン・コマンド・設定・ファイルの書き方・エラーなどの一覧です。<kbd>Ctrl</kbd>+<kbd>F</kbd> で探してください。使い方を順に覚えたいときは<a href="tutorial.html">チュートリアル</a>、考え方を学ぶときは<a href="course.html">学習コース</a>へ。</p>
-  <div class="meta"><span class="pill">拡張機能 v0.6.0</span></div>
+  <div class="meta"><span class="pill">拡張機能 v0.7.0</span></div>
 </header>
 
 <!-- =========================================================== -->
 <section id="sidebar">
   <h2>サイドバー</h2>
   <p>左端の Access アイコンで開きます。「かんたん操作」と「オブジェクト」の 2 つがあります。</p>
-  <figure class="shot"><a href="images/t20-sidebar.png" target="_blank"><img src="images/t20-sidebar.png" alt="サイドバー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>サイドバーの全体</figcaption></figure>
+  <figure class="shot"><a href="images/r-sidebar.png" target="_blank"><img src="images/r-sidebar.png" alt="サイドバー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>サイドバーの全体</figcaption></figure>
   <h3>かんたん操作</h3>
   <div class="table-wrap"><table>
     <tr><th>グループ</th><th>ボタン</th><th>動き</th></tr>
@@ -88,7 +88,7 @@
     <tr><td>配布先を開く</td><td>共有フォルダを開く</td></tr>
     <tr><td>AI と使う</td><td>AI エージェント連携を設定</td><td>選んだ AI 用の設定ファイル・手順書を作る</td></tr>
     <tr><td rowspan="7">その他</td><td>ドキュメント</td><td>このドキュメントを開く</td></tr>
-    <tr><td>練習用サンプルを作る</td><td>チュートリアル用の小さな受注管理 DB を作る</td></tr>
+    <tr><td>練習用サンプルを作る</td><td>チュートリアル用のカフェの注文・売上管理 DB（<code>cafe.accdb</code>）を作る。既にあれば「新しく作る」も選べる</td></tr>
     <tr><td>使い方ガイド</td><td>VS Code 内の簡単なガイド（ウォークスルー）</td></tr>
     <tr><td>すべてを反映</td><td>変更の有無にかかわらず全ファイルを反映</td></tr>
     <tr><td>データベースを切り替える</td><td>別の .accdb を選ぶ</td></tr>
@@ -163,7 +163,7 @@
   <h3>そのほか</h3>
   <ul>
     <li><b>ステータスバー</b>（画面の一番下）：データベース名と未反映の数（● N）。押すとメニュー
-      <figure class="shot"><a href="images/t19-menu.png" target="_blank"><img src="images/t19-menu.png" alt="メニュー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>ステータスバーを押すと出るメニュー</figcaption></figure></li>
+      <figure class="shot"><a href="images/r-menu.png" target="_blank"><img src="images/r-menu.png" alt="メニュー" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>ステータスバーを押すと出るメニュー</figcaption></figure></li>
     <li><b>エディタ右上</b>：ソースフォルダ内のファイルを開いているとき「反映する」、レポートでは「プレビュー」</li>
     <li><b>エクスプローラーの右クリック</b>：.accdb →「データベースを選択」、ソース内のファイル →「このファイルを Access へ反映」、レポート →「プレビュー」</li>
     <li><b>色分け</b>：.bas / .cls は VBA、forms / reports / macros の .txt は Access のオブジェクト（CodeBehindForm 以降は VBA）として色分け</li>
@@ -331,6 +331,26 @@
     <tr><td><code>Assert.Contains 文字列, 部分</code></td><td>部分が含まれる（大文字小文字を区別）</td></tr>
     <tr><td><code>Assert.Fail [理由]</code></td><td>その場で失敗</td></tr>
   </table></div>
+  <h3>UI（フォームを操作するテスト）</h3>
+  <p><code>modules/UI.bas</code>（「テスト・CI/CD を準備」で、フォームがある DB に追加される）。キーボードで操作したのと同じように動かすので、更新前・更新後処理やクリックのイベントも実際に動きます。テストの間、Access は画面の外に表示されます（タスクバーに出ます）。</p>
+  <div class="table-wrap"><table>
+    <tr><th>書き方</th><th>すること</th></tr>
+    <tr><td><code>UI.OpenForm "フォーム名" [, "条件"]</code></td><td>フォームを開き、以降の操作の対象にする（条件は <code>"ID=3"</code> のような絞り込み）</td></tr>
+    <tr><td><code>UI.TypeText "コントロール名", "文字" [, commit]</code></td><td>今の内容を置き換えて入力し、Tab で確定（<code>commit</code> を False にすると確定しない）。コンボボックスは表示されている文字で選べる</td></tr>
+    <tr><td><code>UI.Click "コントロール名"</code></td><td>ボタンを押す。チェックボックス・トグルボタンは切り替わる</td></tr>
+    <tr><td><code>UI.PressKey UI_KEY_ENTER</code></td><td>キーを押す（<code>UI_KEY_TAB</code>・<code>UI_KEY_ESCAPE</code>・<code>UI_KEY_DOWN</code> など）</td></tr>
+    <tr><td><code>UI.Focus "コントロール名"</code></td><td>フォーカスを移す（移動前のコントロールの更新後処理が動く）</td></tr>
+    <tr><td><code>UI.Value("コントロール名")</code></td><td>コントロールの値</td></tr>
+    <tr><td><code>UI.Form</code></td><td>開いているフォーム（<code>UI.Form.lblPick.Caption</code> のように使う）</td></tr>
+    <tr><td><code>UI.UseForm "フォーム名"</code></td><td>操作の対象を切り替える（ボタンで別のフォームが開いたとき）</td></tr>
+    <tr><td><code>UI.IsOpen("フォーム名")</code></td><td>開いているか</td></tr>
+    <tr><td><code>UI.CloseForm ["フォーム名"]</code></td><td>閉じる（<code>TestTeardown</code> で呼ぶと、失敗したテストの後も確実に閉じる）</td></tr>
+  </table></div>
+  <ul>
+    <li>値を <code>Forms!frm!txt = 1</code> のように直接入れると、イベントは動かない。画面の動きを確かめるときは <code>UI.TypeText</code> を使う</li>
+    <li>ボタンで出た MsgBox は自動で答える（確認の質問は「キャンセル」／「いいえ」）。InputBox や <code>acDialog</code> のフォームは止まるので開かない</li>
+    <li>ドラッグや右クリックメニューなど、画面上の位置に頼る操作はできない</li>
+  </ul>
 </section>
 
 <section id="tests">
@@ -366,7 +386,7 @@
     <tr><td><code>implicit-variant-return</code></td><td>情報</td><td>Function / Property Get の戻り値の型が書かれていない</td></tr>
   </table></div>
   <p>エラーがあるとコミット前チェックと CI が失敗します。警告は失敗にはなりません。</p>
-  <figure class="shot"><a href="images/t16-lint.png" target="_blank"><img src="images/t16-lint.png" alt="コードチェック" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>保存したときのコードチェック。波線と「問題」パネルに表示されます。</figcaption></figure>
+  <figure class="shot"><a href="images/r-lint.png" target="_blank"><img src="images/r-lint.png" alt="コードチェック" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>保存したときのコードチェック。波線と「問題」パネルに表示されます。</figcaption></figure>
 </section>
 
 <section id="snapshot">
@@ -388,7 +408,7 @@
     <tr><td><code>.github/workflows/access-release.yml</code></td><td>配布の設定</td><td>タグ <code>v*</code> の push または手動実行で、取り込み → テスト → リリース作成 → 配布</td></tr>
     <tr><td><code>.githooks/pre-commit</code></td><td>テスト・CI/CD を準備</td><td>コミット前にコードチェック。エラーがあると止める（<code>git commit --no-verify</code> で回避可）</td></tr>
     <tr><td><code>tools/access-vsc/</code></td><td>テスト・CI/CD を準備（毎回更新）</td><td>CI とフックが使うスクリプト一式</td></tr>
-    <tr><td><code>modules/Assert.bas</code>, <code>Test_Example.bas</code></td><td>テスト・CI/CD を準備（無い場合のみ）</td><td>アサーションとテストの例</td></tr>
+    <tr><td><code>modules/Assert.bas</code>, <code>UI.bas</code>, <code>Test_Example.bas</code></td><td>テスト・CI/CD を準備（無い場合のみ）</td><td>アサーションとテストの例</td></tr>
     <tr><td><code>.gitattributes</code> / <code>.gitignore</code></td><td>テスト・CI/CD を準備（足りない行だけ追記）</td><td>ソースは CRLF、DB はバイナリ、<code>.accessvsc/</code> などは除外</td></tr>
   </table></div>
 </section>
