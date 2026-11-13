@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AccessVsc.Runner.ps1')
 
-$script:Version = '0.10.0'
+$script:Version = '0.10.1'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), $utf8)
 $stdout = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput(), $utf8)

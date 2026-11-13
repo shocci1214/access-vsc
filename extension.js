@@ -776,7 +776,7 @@ function cmdLink(command, args) {
 const mascotRoot = () => vscode.Uri.joinPath(ctx.extensionUri, 'media', 'mascot');
 function mascotImg(wv, mood, size = 40) {
   const src = wv.asWebviewUri(vscode.Uri.joinPath(mascotRoot(), `tsunagi-${mood}.svg`));
-  return `<img class="mascot" src="${src}" width="${size}" height="${Math.round(size * 0.9)}" alt="" style="image-rendering: pixelated; box-shadow: none; background: none; vertical-align: middle; flex: none;">`;
+  return `<img class="mascot" src="${src}" width="${size}" height="${size}" alt="" style="box-shadow: none; background: none; vertical-align: middle; flex: none;">`;
 }
 
 function showPreviewPanel(o, res) {

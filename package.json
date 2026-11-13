@@ -2,7 +2,7 @@
   "name": "access-vscode",
   "displayName": "Access VSC",
   "description": "Microsoft Access の VBA・クエリ・フォーム・レポートを VS Code で編集し、AI エージェント（Claude Code / GitHub Copilot）から操作できるようにする",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "publisher": "local",
   "license": "MIT",
   "icon": "media/icon.png",

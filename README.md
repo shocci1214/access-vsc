@@ -1,7 +1,7 @@
 # Access VSC
 
 <p align="center"><img src="media/mascot/tsunagi-normal.svg" width="120" alt="マスコットのつなぎ"></p>
-<p align="center">マスコットの <b>つなぎ</b>：VS Code（青）と Access のデータベース（えんじ）を「つなぐ」子。頭の 2 本はプラグです。</p>
+<p align="center">マスコットの <b>つなぎ</b>：水色（VS Code）とピンク（Access のデータベース）がやわらかく混ざった、おもちのような子。アホ毛のハートで、ふたつを「つなぎ」ます。</p>
 
 Microsoft Access の VBA・クエリ・フォーム・レポート・マクロを **テキストファイルとして VS Code で編集** し、
 **AI エージェント（Claude Code / GitHub Copilot など）が Access を操作できる** ようにする拡張機能です。

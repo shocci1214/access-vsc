@@ -1,4 +1,4 @@
-![つなぎ](../mascot/tsunagi-normal.svg)
+<img src="../mascot/tsunagi-normal.svg" width="120" alt="つなぎ">
 
 > こんにちは、**つなぎ**です。VS Code と Access のあいだを、ぼくがつなぎます。
 
