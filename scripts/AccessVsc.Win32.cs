@@ -18,6 +18,7 @@ namespace AccessVsc
     {
         public IntPtr Hwnd;
         public string Title;
+        public string Class;
         public List<string> Texts = new List<string>();
         public List<DialogButton> Buttons = new List<DialogButton>();
     }
@@ -153,6 +154,72 @@ namespace AccessVsc
         public static void MinimizeNoActivate(long hwnd)
         {
             ShowWindow(new IntPtr(hwnd), 7); // SW_SHOWMINNOACTIVE
+        }
+
+        // 時間切れのときの手がかり：Access の見えているウィンドウ（#32770 以外のダイアログも）と、その中の文字
+        public static List<DialogInfo> DescribeWindows(uint pid)
+        {
+            var result = new List<DialogInfo>();
+            EnumWindows((h, l) =>
+            {
+                uint p;
+                GetWindowThreadProcessId(h, out p);
+                if (p != pid || !IsWindowVisible(h)) return true;
+                string cls = ClassOf(h);
+                if (cls == "OMain") return true;   // Access 本体のウィンドウ
+                var d = new DialogInfo { Hwnd = h, Title = TextOf(h), Class = cls };
+                EnumChildWindows(h, (c, l2) =>
+                {
+                    if (!IsWindowVisible(c)) return true;
+                    string text = TextOf(c);
+                    if (text.Length == 0) return true;
+                    if (ClassOf(c) == "Button") d.Buttons.Add(new DialogButton { Hwnd = c, Id = GetDlgCtrlID(c), Text = text });
+                    else if (d.Texts.Count < 20) d.Texts.Add(text);
+                    return true;
+                }, IntPtr.Zero);
+                result.Add(d);
+                return true;
+            }, IntPtr.Zero);
+            return result;
+        }
+
+        [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+
+        // Shift を押す／離す（Access は Shift を押しながら開くと、起動時フォームと AutoExec を動かさない）
+        public static void ShiftKey(bool down)
+        {
+            keybd_event(0x10, 0x2A, down ? 0u : 2u, UIntPtr.Zero);
+        }
+
+        [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+        [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+        [DllImport("user32.dll")] static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
+        [StructLayout(LayoutKind.Sequential)] struct RECT { public int Left, Top, Right, Bottom; }
+
+        // 画面の外へ移して大きさを決める（フォーカスは奪わない）
+        public static void PlaceOffscreen(long hwnd, int width, int height)
+        {
+            SetWindowPos(new IntPtr(hwnd), IntPtr.Zero, -32000, -32000, width, height, 0x0004 | 0x0010); // NOZORDER | NOACTIVATE
+        }
+
+        // ウィンドウの中身を PNG に保存（画面の外にあっても撮れる）
+        public static bool CaptureWindow(long hwnd, string path)
+        {
+            RECT r;
+            if (!GetWindowRect(new IntPtr(hwnd), out r)) return false;
+            int w = r.Right - r.Left, h = r.Bottom - r.Top;
+            if (w <= 0 || h <= 0) return false;
+            using (var bmp = new System.Drawing.Bitmap(w, h))
+            {
+                using (var g = System.Drawing.Graphics.FromImage(bmp))
+                {
+                    IntPtr hdc = g.GetHdc();
+                    try { PrintWindow(new IntPtr(hwnd), hdc, 2); } // PW_RENDERFULLCONTENT
+                    finally { g.ReleaseHdc(hdc); }
+                }
+                bmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            }
+            return true;
         }
     }
 

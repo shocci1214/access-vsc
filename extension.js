@@ -279,6 +279,9 @@ function access(command, params = {}, opts = {}) {
     const p = Object.assign({}, params);
     const t = cfg().get('timeoutSec');
     if (t && !p.timeoutSec) p.timeoutSec = t;
+    const keepBackups = cfg().get('backupKeep');
+    if (typeof keepBackups === 'number' && p.backupKeep === undefined) p.backupKeep = keepBackups;
+    if (cfg().get('runStartup') && p.runStartup === undefined) p.runStartup = true;
     if (cfg().get('keepAccessOpen') !== false) {
       p.db = db;
       if (cfg().get('sourceFolder')) p.src = srcFor(db);
@@ -781,7 +784,7 @@ function mascotImg(wv, mood, size = 40) {
 
 function showPreviewPanel(o, res) {
   const r = res.result || {};
-  const dir = r.pdf ? path.dirname(r.pdf) : os.tmpdir();
+  const dir = r.pdf ? path.dirname(r.pdf) : r.images && r.images[0] ? path.dirname(r.images[0]) : os.tmpdir();
   if (!previewPanel) {
     previewPanel = vscode.window.createWebviewPanel('accessVsc.preview', 'プレビュー', vscode.ViewColumn.Beside, {
       enableCommandUris: true,
@@ -909,6 +912,7 @@ async function cmdMenu() {
     { label: '$(git-compare) 同期状態を表示', cmd: 'accessVsc.status' },
     { label: '$(link-external) Access で開く', cmd: 'accessVsc.openInAccess' },
     { label: '$(book) 構造をドキュメント化', cmd: 'accessVsc.document' },
+    { label: '$(table) テスト結果を Excel に出力', cmd: 'accessVsc.testReport' },
     { label: '$(database) データベースを選択', cmd: 'accessVsc.selectDatabase' },
     { label: '$(sparkle) AI エージェント連携を設定', cmd: 'accessVsc.setupAgent' },
     { label: '$(output) 出力ログを表示', cmd: 'accessVsc.showOutput' },
@@ -953,6 +957,21 @@ Access データベース \`${rel(db)}\` は \`${rel(src)}/\` にテキストと
 5. ユーザーが Access 側で変更した場合は \`access_export\` で取り込む（未インポートの編集があると拒否される）
 6. テーブル定義の変更は \`access_sql\`（write=true で DDL）→ \`access_export\`（kinds=["tables"]）
 
+### フォーム・レポートを新しく作る
+- \`access_create\`（CLI: \`create -Spec spec.json\`）に JSON で指定すると、Access に作らせてから \`forms/*.txt\` / \`reports/*.txt\` を書き出す。.txt を一から手で書かない
+  - 例: \`{"type":"form","name":"frmX","recordSource":"T","caption":"…","properties":{"DefaultView":0},"sections":{"detail":{"height":"5cm"}},"controls":[{"type":"textbox","name":"txtA","controlSource":"A","left":"3cm","top":"0.5cm","width":"4cm","height":"0.6cm","label":"項目A"},{"type":"commandbutton","name":"cmdOK","caption":"OK","left":"3cm","top":"1.5cm","width":"2.5cm","height":"0.8cm","events":["Click"]}],"code":"Private Sub cmdOK_Click()\\n    ...\\nEnd Sub"}\`
+  - 位置・大きさは "cm" / "mm" 付きか twip の数値。レポートは \`groups\`（\`[{"field":"Category","header":true,"footer":true}]\`）とセクション \`group0Header\` など
+- 既存のフォームにコードを足す（.txt の末尾に CodeBehindForm がないとき）：末尾に次の 5 行を追加してから、その下に VBA を書いて \`access_import\`
+\`\`\`
+CodeBehindForm
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+\`\`\`
+  イベントで動かすには、コントロールのかたまりに \`OnClick ="[Event Procedure]"\`（更新後処理は \`AfterUpdate ="[Event Procedure]"\`）の行も足す
+- フォームの見た目は \`access_report_preview\` に objectType="form" で確認する（実際のフォームビューを撮影する。印刷イメージは formView="print"）
+
 ### 帳票（レポート）のレイアウト修正
 1. \`access_report_layout\` で現状を確認（各コントロールの位置・大きさ、用紙設定、問題点）。単位は twip（**1 cm = 567 twip**）
 2. \`reports/<名前>.txt\` の該当コントロールの \`Left\` / \`Top\` / \`Width\` / \`Height\` / \`Caption\` / \`FontSize\` などを書き換える
@@ -988,6 +1007,10 @@ ${run} import  -DbPath "${dbRel}"${srcArg}
 ${run} import  -DbPath "${dbRel}"${srcArg} -Files modules/Module1.bas
 ${run} compile -DbPath "${dbRel}"${srcArg}
 ${run} run     -DbPath "${dbRel}"${srcArg} -Function MyFunc -ArgsJson "[1, 'abc']"
+${run} run     -DbPath "${dbRel}"${srcArg} -ParamsFile params.json   # 日本語を含む引数は UTF-8 の JSON ファイルで渡す（例: {"function":"MyFunc","args":["東京"]}、{"expression":"..."}）
+${run} script  -DbPath "${dbRel}"${srcArg} -ScriptFile work.ps1      # 見張りの中で PowerShell を実行（$app・$db が使える。COM で作業するときはこれを使う）
+${run} script  -DbPath "${dbRel}"${srcArg} -Vba code.bas             # VBA の文を実行（Main = 値 で結果を返す）
+${run} create  -DbPath "${dbRel}"${srcArg} -Spec spec.json           # フォーム・レポートを新しく作る
 ${run} sql     -DbPath "${dbRel}"${srcArg} -Sql "SELECT TOP 10 * FROM MyTable"
 ${run} eval    -DbPath "${dbRel}"${srcArg} -Expr "DCount('*','MyTable')"
 ${run} export  -DbPath "${dbRel}"${srcArg}
@@ -1007,6 +1030,10 @@ ${run} pagesetup -DbPath "${dbRel}"${srcArg} -Report rptSales -PaperSize A4 -Ori
 - インポートと書き込み SQL の前に \`${rel(path.join(path.dirname(db), '.accessvsc', 'backups'))}/\` へ DB のバックアップが作られる
 - ユーザーが Access でこの DB を開いていると書き込み系の操作は失敗する（閉じてもらう）
 - フォームの .txt はプロパティの書式が厳密。既存の行の書き方に合わせ、GUID や Checksum などのバイナリ行は触らない
+- 起動時フォームと AutoExec は動かさずに DB を開く（結果の \`startup\` に何を飛ばしたかが出る）。動かす必要があるときだけ runStartup（CLI: -RunStartup）
+- Access を自分の COM スクリプトで操作しない。必要なら \`access_script\`（CLI: script）を使う。見えないダイアログには自動で答え、時間切れのときは表示中のウィンドウの文字が \`openWindows\` に返る
+- 日本語の名前の VBA 関数は、コントロールソースやクエリの式から呼べない（#Name? になる）。式から呼ぶ関数は英数字の名前にする（\`access_lint\` が警告する）
+- PowerShell の変数名は大文字・小文字を区別しない（$p と $P は同じ）。スクリプトは UTF-8（BOM 付き）で保存する
 ${AGENT_END}`;
 }
 
@@ -1248,6 +1275,31 @@ function applyLint(res) {
     byFile.get(file).push(d);
   }
   for (const [file, list] of byFile) lintDiagnostics.set(vscode.Uri.file(file), list);
+}
+
+// テストの項目と結果を Excel に（単体・結合・システム）
+async function cmdTestReport() {
+  const db = await getDb(true);
+  if (!db) return;
+  const c = await vscode.window.showQuickPick(
+    [
+      { label: '$(play) テストを実行してから出力', id: 'run' },
+      { label: '$(history) 最後に実行したテストの結果で出力', id: 'last' },
+    ],
+    { placeHolder: 'テストの項目と結果を Excel に出力します' }
+  );
+  if (!c) return;
+  if (c.id === 'run' && !(await ensureImported(db))) return;
+  const res = await access('test-report', { run: c.id === 'run' }, { db, title: c.id === 'run' ? 'テストを実行して Excel に出力中...' : 'Excel に出力中...' });
+  if (!res || !res.ok) return report(res, () => '');
+  const r = res.result;
+  const pick = await vscode.window.showInformationMessage(
+    `テスト結果を Excel に出力しました（合格 ${r.passed} / 不合格 ${r.failed} / エラー・要確認 ${r.errors} / 全 ${r.total} 件）: ${relToWorkspace(r.path)}`,
+    'Excel で開く',
+    'フォルダを開く'
+  );
+  if (pick === 'Excel で開く') vscode.env.openExternal(vscode.Uri.file(r.path));
+  else if (pick === 'フォルダを開く') vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(r.path));
 }
 
 // データベースの構造をドキュメント化（取り出したソースから。Access は使わない）
@@ -1663,6 +1715,7 @@ class ActionsProvider {
       ]),
       group('テスト・品質', [
         action('テストを実行', 'VBA のユニットテスト', 'beaker', 'accessVsc.runTests', [], 'Test_ で始まる Public Sub をすべて実行します。DB のコピーで実行するので、元のデータは変わりません。'),
+        action('テスト結果を Excel に', '単体・結合・システム', 'table', 'accessVsc.testReport', [], '実施したテストの項目（確認内容・手順・期待結果）と結果を、区分ごとのシートにして Excel に出力します。'),
         action('コードチェック', 'Access 不要・数秒', 'checklist', 'accessVsc.lint', [], 'Shift-JIS にない文字、Option Explicit の書き忘れ、帳票のはみ出しなどを調べます。'),
         action('帳票の見た目を比較', 'スナップショット', 'eye', 'accessVsc.snapshot', [], '全レポートを画像にして、基準画像と比べます。変わった所は赤で表示します。'),
         action('テスト・CI/CD を準備', 'Assert・GitHub Actions など', 'rocket', 'accessVsc.setupCi', [], 'テスト用の Assert モジュールとテスト例、GitHub Actions の設定、コミット前の自動チェックを追加します。'),
@@ -1934,6 +1987,7 @@ function activate(context) {
   reg('accessVsc.runTests', cmdRunTests);
   reg('accessVsc.lint', () => cmdLint(false));
   reg('accessVsc.document', cmdDocument);
+  reg('accessVsc.testReport', cmdTestReport);
   reg('accessVsc.setupCi', cmdSetupCi);
   reg('accessVsc.snapshot', cmdSnapshot);
   reg('accessVsc.snapshotAccept', cmdSnapshotAccept);

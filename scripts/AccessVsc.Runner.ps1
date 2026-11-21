@@ -15,11 +15,12 @@ $script:ScriptDir = $PSScriptRoot
 . (Join-Path $script:ScriptDir 'AccessVsc.Lint.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Format.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Document.ps1')
+. (Join-Path $script:ScriptDir 'AccessVsc.TestReport.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Setup.ps1')
 . (Join-Path $script:ScriptDir 'AccessVsc.Release.ps1')
 
-$script:DefaultTimeouts = @{ export = 600; import = 600; compile = 180; run = 60; eval = 60; sql = 60; list = 60; layout = 90; preview = 180; pagesetup = 120; test = 900; snapshot = 0; build = 0; deploy = 0 }
-$script:WriteCommands = @('import', 'compile', 'pagesetup')
+$script:DefaultTimeouts = @{ export = 600; import = 600; compile = 180; run = 60; eval = 60; sql = 60; list = 60; layout = 90; preview = 180; pagesetup = 120; test = 900; script = 120; create = 180; snapshot = 0; build = 0; deploy = 0 }
+$script:WriteCommands = @('import', 'compile', 'pagesetup', 'script', 'create')
 $script:MaxDialogs = 10
 
 # ------------------------------------------------------------
@@ -29,7 +30,7 @@ $script:MaxDialogs = 10
 #   ・しばらく使わなければ閉じる（Invoke-SessionMaintenance）
 #   ・別のプロセスが同じ DB を使いたいときは、名前付きイベントで閉じてもらう（Request-SessionRelease）
 # ------------------------------------------------------------
-$script:SessionOps = @('export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup')
+$script:SessionOps = @('export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'script', 'create')
 $script:Session = $null
 
 function Get-SessionEventName([string]$Db) { return 'Local\AccessVsc_Release_' + (Get-StringSha1 $Db.ToLowerInvariant()) }
@@ -186,6 +187,17 @@ function Test-DatabaseLocked([string]$DbPath) {
     catch { return $true }
 }
 
+# 最後に実行したテスト・スナップショットの結果（テスト結果の Excel で使う）
+function Save-LastResult([string]$Db, [string]$Kind, $Res) {
+    try {
+        $dir = Join-Path (Split-Path -Parent $Db) '.accessvsc\test-results'
+        if (-not (Test-Path -LiteralPath $dir)) { [void](New-Item -ItemType Directory -Path $dir -Force) }
+        $data = [ordered]@{ kind = $Kind; database = $Db; ranAt = (Get-Date).ToString('yyyy-MM-ddTHH:mm:ss'); ok = [bool]$Res.ok; result = $Res.result }
+        [System.IO.File]::WriteAllText((Join-Path $dir "last-$Kind.json"), (ConvertTo-PrettyJson $data), (New-Object System.Text.UTF8Encoding($false)))
+    }
+    catch {}
+}
+
 function New-DatabaseBackup([string]$DbPath, [int]$Keep = 10) {
     $dir = Join-Path (Split-Path -Parent $DbPath) '.accessvsc\backups'
     if (-not (Test-Path -LiteralPath $dir)) { [void](New-Item -ItemType Directory -Path $dir -Force) }
@@ -322,7 +334,17 @@ Invoke-AccessOp `$op `$p `$state
         }
         if (-not $killed -and $sw.Elapsed.TotalSeconds -gt $TimeoutSec) { $killed = "did not finish within $TimeoutSec sec (phase: $($state.phase)); a modal form or input wait may be blocking" }
         if ($killed) {
-            if ($accessPid) { Stop-Process -Id $accessPid -Force -ErrorAction SilentlyContinue }
+            if ($accessPid) {
+                # 止める前に、表示中のウィンドウ（見張りが押せなかったダイアログなど）の文字を記録する
+                try {
+                    $shown = @([AccessVsc.Win32]::DescribeWindows([uint32]$accessPid) | ForEach-Object {
+                            [ordered]@{ class = $_.Class; title = $_.Title; texts = @($_.Texts); buttons = @($_.Buttons | ForEach-Object { $_.Text }) }
+                        })
+                    if ($shown.Count) { $state.openWindows = $shown }
+                }
+                catch {}
+                Stop-Process -Id $accessPid -Force -ErrorAction SilentlyContinue
+            }
             $deadline = $sw.Elapsed.TotalSeconds + 10
             while (-not $handle.IsCompleted -and $sw.Elapsed.TotalSeconds -lt $deadline) { Start-Sleep -Milliseconds 200 }
             break
@@ -390,6 +412,12 @@ Invoke-AccessOp `$op `$p `$state
     elseif ($killed -and -not $closeHang) {
         $out.ok = $false
         $out.error = "Access was terminated: $killed" + $(if ($out.error) { " / $($out.error)" } else { '' })
+    }
+    if ($state.openWindows) {
+        # 止めたときに表示されていたウィンドウ（原因の手がかり）
+        $out.openWindows = $state.openWindows
+        $desc = (@($state.openWindows | ForEach-Object { "[$($_.class)] $($_.title)$(if ($_.texts.Count) { ' - ' + ($_.texts -join ' / ') })$(if ($_.buttons.Count) { ' (buttons: ' + ($_.buttons -join ', ') + ')' })" })) -join ' | '
+        $out.error = [string]$out.error + " / Windows shown when stopped: $desc"
     }
     $out.dialogs = $dialogs.ToArray()
     if ($state.runtimeError -and $Op -ne 'test') {
@@ -491,6 +519,24 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
     $res = [ordered]@{ ok = $false; command = $Command }
     $mutex = $null
     try {
+        if ($Command -eq 'test-report') {
+            # テストの項目と結果を Excel に（Access は使わない。run なら先にテストを実行する）
+            $db = Resolve-DatabasePath $P.db
+            $src = Resolve-SourcePath $db $P.src
+            $res.database = $db; $res.source = $src
+            if ($P.run) {
+                $tp = @{}; foreach ($k in @($P.Keys)) { if ($k -notin @('run', 'out')) { $tp[$k] = $P[$k] } }
+                $tp.db = $db
+                $tr = Invoke-AccessVsc 'test' $tp
+                $res.testRun = [ordered]@{ ok = $tr.ok; summary = $(if ($tr.result) { $tr.result.summary } else { $null }); error = $tr.error }
+                if (-not $tr.result -or -not $tr.result.summary) { throw ("The tests could not run: " + $tr.error) }
+            }
+            $out = $null
+            if ($P.out) { $out = [System.IO.Path]::GetFullPath($(if ([System.IO.Path]::IsPathRooted([string]$P.out)) { [string]$P.out } else { Join-Path (Get-Location).Path ([string]$P.out) })) }
+            $res.result = Invoke-TestReport $db $src $out
+            $res.ok = $true
+            return $res
+        }
         if ($Command -in @('lint', 'format', 'document')) {
             # Access も DB ファイルも不要（CI のクラウド実行環境でも動く）
             if ($P.src -and -not $P.db) { $src = [System.IO.Path]::GetFullPath($(if ([System.IO.Path]::IsPathRooted($P.src)) { $P.src } else { Join-Path (Get-Location).Path $P.src })) }
@@ -556,6 +602,8 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
         if (-not $got) { $mutex = $null; throw 'Another Access VSC operation on this database is still running.' }
 
         $isWrite = ($Command -in $script:WriteCommands) -or ($Command -eq 'sql' -and $P.write)
+        # 起動時フォーム・AutoExec は既定では動かさない（runStartup・ACCESSVSC_RUN_STARTUP=1 で動かす）
+        if ($null -eq $P.runStartup -and $env:ACCESSVSC_RUN_STARTUP -eq '1') { $P.runStartup = $true }
         $lock = Get-DatabaseLockState $db
         if ($lock -eq 'session' -and -not ($script:Session -and $script:Session.db -eq $db)) {
             # ほかの常駐プロセス（VS Code / AI）が開いたままにしている：閉じてもらう
@@ -576,7 +624,10 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
             # 複数回 Access を使う処理（AccessVsc.Release.ps1）
             Initialize-Win32
             switch ($Command) {
-                'snapshot' { Invoke-SnapshotCommand $db $src $P $res }
+                'snapshot' {
+                    Invoke-SnapshotCommand $db $src $P $res
+                    Save-LastResult $db 'snapshot' $res   # テスト結果の Excel（システムテスト）で使う
+                }
                 'build' { Invoke-BuildCommand $db $src $P $res }
                 'deploy' { Invoke-DeployCommand $db $src $P $res }
             }
@@ -590,7 +641,7 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
                     $dirty = @($st.changed) + @($st.added) + @($st.missing)
                     if ($dirty.Count -gt 0) {
                         $res.result = [ordered]@{ unimported = $dirty }
-                        throw ("Source folder has changes that are not imported yet; export would overwrite them. Run import first, or export with force. Files: " + ($dirty -join ', '))
+                        throw ("Source folder has changes that are not imported yet; export would overwrite them. If the source is right, run import first. If the database is right (for example you restored it from a backup or changed it in Access), export with force (CLI: -Force) to overwrite the source. Files: " + ($dirty -join ', '))
                     }
                 }
                 if (-not (Test-Path -LiteralPath $src)) { [void](New-Item -ItemType Directory -Path $src -Force) }
@@ -626,6 +677,14 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
             'run' { if (-not $P.function) { throw 'function is required' } }
             'eval' { if (-not $P.expression) { throw 'expression is required' } }
             'sql' { if (-not $P.sql) { throw 'sql is required' } }
+            'script' {
+                if (-not ($P.code -or $P.scriptFile -or $P.vba)) { throw 'code, scriptFile or vba is required' }
+                if ($P.scriptFile) { $P.scriptFile = [System.IO.Path]::GetFullPath($(if ([System.IO.Path]::IsPathRooted([string]$P.scriptFile)) { [string]$P.scriptFile } else { Join-Path (Get-Location).Path ([string]$P.scriptFile) })) }
+            }
+            'create' {
+                if (-not $P.spec) { throw 'spec is required' }
+                if (-not (Test-Path -LiteralPath $src)) { [void](New-Item -ItemType Directory -Path $src -Force) }
+            }
             'test' {
                 $cases = @(Get-TestCases $src)
                 if ($P.filter) {
@@ -663,10 +722,17 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
             }
         }
 
-        if ($isWrite -and -not $P.noBackup) { $res.backup = New-DatabaseBackup $db }
+        $keep = 10
+        if ($null -ne $P.backupKeep) { $keep = [int]$P.backupKeep } elseif ($env:ACCESSVSC_BACKUP_KEEP -match '^\d+$') { $keep = [int]$env:ACCESSVSC_BACKUP_KEEP }
+        if ($isWrite -and -not $P.noBackup -and $keep -gt 0) { $res.backup = New-DatabaseBackup $db $keep }
 
         $out = Invoke-InAccess $Command $P $timeout $useSession
         if ($useSession) { $res.session = $true }
+        if ($out.startup) {
+            $res.startup = $out.startup
+            if (-not $out.startup.skipped) { $res.warnings = @(@($res.warnings) + "AllowBypassKey が False のため、起動時の処理（$($out.startup.items -join '・')）を止められませんでした。データが変わっていないか確認してください。" | Where-Object { $_ }) }
+        }
+        if ($out.openWindows) { $res.openWindows = $out.openWindows }
         $res.ok = [bool]$out.ok
         $res.result = $out.result
         if ($out.error) { $res.error = $out.error }
@@ -698,6 +764,7 @@ function Invoke-AccessVsc([string]$Command, [hashtable]$P) {
             }
             $res.result.junit = Write-JUnitReport $res.result $(if ($P.junit) { $P.junit } else { Join-Path (Split-Path -Parent $db) '.accessvsc\test-results\junit.xml' })
             if ($P.summary) { Add-TestSummaryMarkdown $res.result $P.summary }
+            Save-LastResult $db 'test' $res   # テスト結果の Excel で使う
         }
         if ($Command -eq 'test' -and $res.result -and $res.result.compile -and $res.result.compile.error) { Add-SourceLocation $res.result.compile.error $src }
         if ($Command -eq 'preview' -and $res.ok -and $res.result.pdf -and (Test-Path -LiteralPath $res.result.pdf) -and $P.png -ne $false) {

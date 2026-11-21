@@ -176,6 +176,36 @@ try {
         $p = Join-Path $src 'forms\frmOrder.txt'
         [IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p).Replace('TaxIncluded(Me.txtSubtotal, False)', 'TaxIncluded(Me.txtSubtotal, Nz(Me.chkTakeout, False))'), $u8)
         $r = Acc import; $r = Acc test; Check 'UI test passes after the fix' ($r.ok -and $r.result.summary.passed -eq 2) $r.result.tests
+        # テスト結果の Excel（単体・結合・システム）
+        $r = Acc test-report
+        Check 'test-report: xlsx written' ($r.ok -and (Test-Path $r.result.path) -and $r.result.total -eq 2 -and $r.result.counts.'結合テスト' -eq 2) $r
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [IO.Compression.ZipFile]::OpenRead($r.result.path)
+        try { $parts = @($zip.Entries | ForEach-Object FullName) } finally { $zip.Dispose() }
+        Check 'test-report: valid package' ($parts -contains 'xl/workbook.xml' -and $parts -contains 'xl/worksheets/sheet4.xml' -and $parts -contains '[Content_Types].xml') $parts
+
+        # 起動時フォームは既定では動かさない（-RunStartup で動かす）
+        $tmpDir = Join-Path $work 'tmp'; New-Item -ItemType Directory -Force $tmpDir | Out-Null
+        $ps1 = Join-Path $tmpDir 'startup.ps1'
+        [IO.File]::WriteAllText($ps1, "`$p = `$db.CreateProperty('StartUpForm', 10, 'frmOrder'); `$db.Properties.Append(`$p); 'set'", (New-Object Text.UTF8Encoding $true))
+        $r = Acc script @('-ScriptFile', $ps1); Check 'script: PowerShell with $db' ($r.ok -and $r.result.value -eq 'set') $r
+        [IO.File]::WriteAllText($ps1, "[bool]`$app.CurrentProject.AllForms.Item('frmOrder').IsLoaded", (New-Object Text.UTF8Encoding $true))
+        $r = Acc script @('-ScriptFile', $ps1); Check 'startup form is not run by default' ($r.ok -and $r.result.value -eq $false -and (@($r.startup.items) -join '') -match 'frmOrder') $r
+        $r = Acc script @('-ScriptFile', $ps1, '-RunStartup'); Check 'startup form runs with -RunStartup' ($r.ok -and $r.result.value -eq $true) $r
+        # VBA の文
+        $bas = Join-Path $tmpDir 'a.bas'
+        [IO.File]::WriteAllText($bas, 'Main = TaxIncluded(1000, True) & "/" & DCount("*", "Products")', (New-Object Text.UTF8Encoding $false))
+        $r = Acc script @('-Vba', $bas); Check 'script: VBA statements' ($r.ok -and $r.result.value -eq '1080/8') $r
+        # JSON からフォームを作る → 実際の画面で撮る
+        $specPath = Join-Path $tmpDir 'spec.json'
+        [IO.File]::WriteAllText($specPath, '{"type":"form","name":"frmMemberList","recordSource":"Members","caption":"会員","properties":{"DefaultView":1},"sections":{"detail":{"height":"1.2cm"}},"controls":[{"type":"textbox","name":"txtMemberName","controlSource":"MemberName","left":"3cm","top":"0.2cm","width":"5cm","height":"0.6cm","label":"会員名"},{"type":"commandbutton","name":"cmdHello","caption":"あいさつ","left":"9cm","top":"0.2cm","width":"2.5cm","height":"0.7cm","events":["Click"]}],"code":"Private Sub cmdHello_Click()\n    Me.Caption = Me.txtMemberName\nEnd Sub"}', (New-Object Text.UTF8Encoding $false))
+        $r = Acc create @('-Spec', $specPath)
+        Check 'create form from spec' ($r.ok -and (Test-Path (Join-Path $src 'forms\frmMemberList.txt')) -and @($r.result.controls) -contains 'cmdHello' -and -not $r.warnings) $r
+        $r = Acc compile; Check 'created form compiles' ($r.ok) $r
+        $r = Acc preview @('-Report', 'frmMemberList', '-ObjectType', 'form'); Check 'preview form view (screenshot)' ($r.ok -and $r.result.view -eq 'form' -and (Test-Path @($r.result.images)[0])) $r
+        # 時間切れ：止めたときに表示されていたウィンドウを返す（モーダルで開いたフォーム）
+        [IO.File]::WriteAllText($bas, 'DoCmd.OpenForm "frmMemberList", WindowMode:=acDialog', (New-Object Text.UTF8Encoding $false))
+        $r = Acc script @('-Vba', $bas, '-TimeoutSec', '15'); Check 'timeout reports open windows' (-not $r.ok -and @($r.openWindows).Count -ge 1 -and $r.error -match 'did not finish' -and $r.error -match 'Windows shown') $r.error
 
         # 常駐モード（serve）：Access を開いたままにして使い回す
         $psi = New-Object System.Diagnostics.ProcessStartInfo 'powershell.exe'

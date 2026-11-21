@@ -14,6 +14,7 @@
     implicit-variant-return (info) Function / Property Get の戻り値の型が書かれていない
     unused-variable    (warning) 手続きの中で宣言したのに使っていない変数
     broken-reference   (warning) VBA の参照設定が「参照不可」になっている（references.json）
+    non-ascii-function (warning) 日本語など英数字以外の名前の VBA 関数を、フォーム・レポートの式やクエリから呼んでいる（#Name? になる）
     block-structure    (warning) If / For / Do / With / Select などのブロックの対応が取れない（End If の書き忘れなど）
     format             (info)    インデントが整っていない（access.ps1 format / エディタの Shift+Alt+F で直せる）
 #>
@@ -233,9 +234,39 @@ function Test-VbaFormat([string]$Rel, [string[]]$Lines, $Problems) {
     }
 }
 
+# 日本語など英数字以外の名前の関数を、式（コントロールソースなど）・クエリから呼んでいないか。
+# Access の式からは呼べず #Name? になる（VBA の中からは呼べる）。画面を開くまで気づけないので警告する
+function Test-NonAsciiFunctionCalls([string]$Src, [string[]]$Files, $Problems) {
+    $names = New-Object System.Collections.Generic.List[string]
+    foreach ($rel in @($Files | Where-Object { $_ -match '^modules/.+\.bas$' })) {
+        foreach ($l in ((Read-SourceText (Join-Path $Src ($rel.Replace('/', '\')))) -split "`r?`n")) {
+            $m = [regex]::Match($l, '(?i)^\s*(?:Public\s+)?(?:Static\s+)?Function\s+([A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*)\s*\(')
+            if ($m.Success -and $l -notmatch '(?i)^\s*Private\s' -and $m.Groups[1].Value -match '[^\x00-\x7F]') { $names.Add($m.Groups[1].Value) }
+        }
+    }
+    if (-not $names.Count) { return }
+    foreach ($rel in @($Files | Where-Object { $_ -match '^(forms|reports)/.+\.txt$|^queries/.+\.sql$' })) {
+        $lines = @((Read-SourceText (Join-Path $Src ($rel.Replace('/', '\')))) -split "`r?`n")
+        $isSql = $rel -like 'queries/*'
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            $l = $lines[$i]
+            if (-not $isSql) {
+                if ($l.Trim() -match '^CodeBehind(Form|Report)$') { break }   # ここから下は VBA（呼んでよい）
+                if ($l -notmatch '^\s*(ControlSource|RowSource|RecordSource|DefaultValue|ValidationRule|On\w+|BeforeUpdate|AfterUpdate|Filter|OrderBy)\s*=') { continue }
+            }
+            foreach ($n in $names) {
+                if ([regex]::IsMatch($l, "(?<![\w\u0080-\uFFFF])$([regex]::Escape($n))\s*\(")) {
+                    $Problems.Add((New-LintProblem $rel ($i + 1) 'warning' 'non-ascii-function' "日本語の名前の関数 $n を式から呼んでいます。Access の式（コントロールソース・クエリなど）からは呼べず #Name? になります。英数字の名前の関数を用意して、そちらを呼んでください（VBA の中から呼ぶのは問題ありません）。"))
+                }
+            }
+        }
+    }
+}
+
 function Invoke-SourceLint([string]$Src, [string[]]$Only) {
     $problems = New-Object System.Collections.Generic.List[object]
     $files = @(Get-SourceFiles $Src)
+    try { Test-NonAsciiFunctionCalls $Src $(if ($Only) { @($files | Where-Object { $Only -contains $_ -or $_ -like 'modules/*' }) } else { $files }) $problems } catch {}
     if ($Only) { $files = @($files | Where-Object { $Only -contains $_ }) }
     $status = $null
     foreach ($rel in $files) {

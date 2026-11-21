@@ -2,7 +2,7 @@
   "name": "access-vscode",
   "displayName": "Access VSC",
   "description": "Microsoft Access の VBA・クエリ・フォーム・レポートを VS Code で編集し、AI エージェント（Claude Code / GitHub Copilot）から操作できるようにする",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "publisher": "local",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -62,6 +62,7 @@
       { "command": "accessVsc.openExternalFile", "title": "ファイルを開く", "category": "Access" },
       { "command": "accessVsc.runTests", "title": "テストを実行（VBA ユニットテスト）", "category": "Access", "icon": "$(beaker)" },
       { "command": "accessVsc.lint", "title": "コードチェック（lint）", "category": "Access", "icon": "$(checklist)" },
+      { "command": "accessVsc.testReport", "title": "テスト結果を Excel に出力（単体・結合・システム）", "category": "Access", "icon": "$(table)" },
       { "command": "accessVsc.document", "title": "構造をドキュメント化（ER 図・対応表）", "category": "Access", "icon": "$(book)" },
       { "command": "accessVsc.setupCi", "title": "テスト・CI/CD を準備（Assert / GitHub Actions / コミット前チェック）", "category": "Access", "icon": "$(rocket)" },
       { "command": "accessVsc.snapshot", "title": "帳票の見た目を比較（スナップショット）", "category": "Access", "icon": "$(eye)" },
@@ -268,6 +269,17 @@
           "default": 300,
           "minimum": 10,
           "description": "使わない時間がこの秒数を超えたら、開いたままの Access を閉じる。"
+        },
+        "accessVsc.runStartup": {
+          "type": "boolean",
+          "default": false,
+          "description": "DB を開くときに、起動時フォームと AutoExec マクロを動かす。既定（オフ）では動かさない（確認や実行のための操作で、データが変わらないように）。"
+        },
+        "accessVsc.backupKeep": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "description": "反映・コンパイルなどの前に作るバックアップ（.accessvsc/backups）を、何世代まで残すか。0 にするとバックアップを作らない。"
         },
         "accessVsc.timeoutSec": {
           "type": "number",

@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AccessVsc.Runner.ps1')
 
-$script:Version = '0.10.1'
+$script:Version = '0.11.0'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), $utf8)
 $stdout = New-Object System.IO.StreamWriter([Console]::OpenStandardOutput(), $utf8)
@@ -87,6 +87,7 @@ $tools = @(
                 where      = [ordered]@{ type = 'string'; description = 'Optional filter (SQL WHERE without the word WHERE), e.g. "City=''Tokyo''".' }
                 pages      = [ordered]@{ type = 'integer'; description = 'Max pages to render as images (default 2).' }
                 objectType = [ordered]@{ type = 'string'; enum = @('report', 'form') }
+                formView   = [ordered]@{ type = 'string'; enum = @('form', 'print'); description = 'Forms only. form (default): screenshot of the real Form view (buttons, continuous/single form as on screen). print: print layout.' }
             }) @('report') $true)
     (New-Tool 'access_report_pagesetup' 'Report page setup' 'Change a report''s paper size, orientation, margins (mm) and/or width (cm). Saves the report and rewrites reports/<name>.txt so the source stays in sync. Paper sizes and margins cannot be edited in the text file (they are binary), so use this tool.' ([ordered]@{
                 report       = [ordered]@{ type = 'string' }
@@ -117,6 +118,21 @@ $tools = @(
     (New-Tool 'access_document' 'Document database structure' 'Write Markdown documentation of the database from the source folder (no Access): index.md (overview, ER diagram in Mermaid, object list), tables.md, queries.md, forms.md (controls, events, which procedure runs on which event), reports.md (groups, controls), modules.md (procedures with doc comments). Every object lists what it uses and where it is used (cross reference by name). Use it to understand an unfamiliar database and to check the impact of a change before editing. Each object has a notes block (<!-- notes:kind:name --> ... <!-- /notes -->): write explanations there; they are kept when the documentation is regenerated. Returns the file paths and the notes that are still empty.' ([ordered]@{
                 out = [ordered]@{ type = 'string'; description = 'Output folder (default: <database>.docs next to the database).' }
             }) @() $false $false)
+    (New-Tool 'access_script' 'Run script in Access' 'Run PowerShell or VBA inside the Access VSC watchdog (dialogs are answered and recorded in "dialogs"; on timeout the text of the windows shown is returned in "openWindows"). Use this instead of your own COM scripts. PowerShell: code, with $app (Access.Application), $db (CurrentDb) and $params available; the last output is the result. VBA: vba = statements (return a value with "Main = value") or a whole module with Sub/Function and entry; it is loaded as a temporary module AVSC_Temp and removed afterwards. A backup is made first.' ([ordered]@{
+                code    = [ordered]@{ type = 'string'; description = 'PowerShell statements.' }
+                vba     = [ordered]@{ type = 'string'; description = 'VBA statements or a module.' }
+                entry   = [ordered]@{ type = 'string'; description = 'Procedure to call when vba is a module (default Main).' }
+                params  = [ordered]@{ type = 'object'; description = 'Values passed to PowerShell as $params.' }
+                timeoutSec = [ordered]@{ type = 'integer'; description = 'Default 120.' }
+            }) @())
+    (New-Tool 'access_create' 'Create form or report' 'Create a new form or report from a JSON spec (Access creates it, then forms/<name>.txt or reports/<name>.txt is written). Do not write a new .txt by hand. spec: {type: "form"|"report", name, recordSource, caption, width, properties: {DefaultView: 0, ...}, sections: {detail: {height: "5cm"}, header, footer, pageHeader, pageFooter, group0Header, ...}, groups (reports): [{field, header, footer, descending}], controls: [{type: textbox|label|combobox|listbox|checkbox|commandbutton|optiongroup|subform|line|rectangle|image|togglebutton|tab, name, section, left, top, width, height (twips or "1.5cm"/"10mm"), controlSource, caption, rowSource, sourceObject, label (adds a label on the left), properties: {...}, events: ["Click","AfterUpdate"]}], events (form/report events, e.g. ["Load"]), code (VBA for the module, without Option lines)}. force=true replaces an existing object. Then preview it with access_report_preview.' ([ordered]@{
+                spec  = [ordered]@{ type = 'object'; description = 'Form or report spec (see description).' }
+                force = [ordered]@{ type = 'boolean'; description = 'Replace an existing object with the same name.' }
+            }) @('spec'))
+    (New-Tool 'access_test_report' 'Test report to Excel' 'Write the executed tests and their results to an Excel file (.xlsx; Excel is not needed): sheets 概要 (summary per category), 単体テスト (unit), 結合テスト (integration), システムテスト (system), with test ID, purpose (comment above the test), steps (UI operations in plain Japanese), expected results (from Assert), result and message. Category: a comment "区分: 単体/結合/システム" above the test or at the top of the module; otherwise tests that use the UI module are integration tests and others are unit tests. Report snapshot results are added as system tests. run=true runs the tests first; otherwise the last test run is used.' ([ordered]@{
+                run = [ordered]@{ type = 'boolean'; description = 'Run the tests first.' }
+                out = [ordered]@{ type = 'string'; description = 'Output .xlsx path (default: test-reports\テスト結果_<db>_<date>.xlsx).' }
+            }) @() $false $false)
     (New-Tool 'access_setup_ci' 'Set up tests and CI' 'Add the Assert module and an example test module to the source folder, copy the tool scripts to tools/access-vsc, and create a GitHub Actions workflow (.github/workflows/access-ci.yml), a pre-commit lint hook and .gitattributes/.gitignore entries. Does not start Access.' ([ordered]@{
                 root    = [ordered]@{ type = 'string'; description = 'Repository root (default: git root of the database folder, or the database folder).' }
                 gitInit = [ordered]@{ type = 'boolean'; description = 'Run git init when the root is not a git repository.' }
@@ -127,7 +143,7 @@ $tools = @(
 $instructions = @'
 Access VSC lets you edit a Microsoft Access database as text files.
 Workflow: access_status -> edit files in the source folder -> access_format (fix VBA indentation) -> access_import (imports changed files and compiles) -> fix compile errors at the returned file/fileLine -> access_run / access_sql to verify.
-If objects were changed in the Access GUI, run access_export first (it refuses to overwrite unimported edits).
+The database is opened without running its startup form / AutoExec (see "startup" in results). Never drive Access with your own COM scripts; use access_script (dialogs are handled, and on timeout the visible windows are reported). To make a new form or report use access_create. VBA functions with non-ASCII (e.g. Japanese) names cannot be called from control sources or queries (#Name?). If objects were changed in the Access GUI, run access_export first (it refuses to overwrite unimported edits).
 tables/*.json and relationships.json are read-only snapshots; change schema with access_sql write=true (DDL) and then access_export kinds=["tables"].
 VBA modules are stored in Shift-JIS inside Access: avoid characters that Shift-JIS cannot represent (e.g. emoji).
 Report layout work: access_report_layout (positions in twips, 1 cm = 567) -> edit Left/Top/Width/Height/Caption/FontSize... in reports/<name>.txt -> access_import -> access_report_preview to look at the rendered pages and fix until "issues" is empty and the images look right. Paper size / orientation / margins: access_report_pagesetup (they are binary in the text file; do not edit PrtDevMode/PrtMip lines).
@@ -158,7 +174,7 @@ function Invoke-Tool([string]$Name, $A) {
         'access_sql' { $cmd = 'sql'; $P.sql = $A.sql; $P.limit = $(if ($A.limit) { [int]$A.limit } else { 100 }); $P.write = [bool]$A.write }
         'access_report_layout' { $cmd = 'layout'; $P.report = $A.report; $P.objectType = $A.objectType }
         'access_report_preview' {
-            $cmd = 'preview'; $P.report = $A.report; $P.objectType = $A.objectType; $P.where = $A.where
+            $cmd = 'preview'; $P.report = $A.report; $P.objectType = $A.objectType; $P.where = $A.where; if ($A.formView) { $P.formView = $A.formView }
             $P.pages = $(if ($A.pages) { [int]$A.pages } else { 2 })
         }
         'access_report_pagesetup' {
@@ -167,6 +183,9 @@ function Invoke-Tool([string]$Name, $A) {
         }
         'access_test' { $cmd = 'test'; if ($A.filter) { $P.filter = @($A.filter) } }
         'access_lint' { $cmd = 'lint' }
+        'access_script' { $cmd = 'script'; $P.code = $A.code; $P.vba = $A.vba; $P.entry = $A.entry; $P.params = $A.params; if ($A.timeoutSec) { $P.timeoutSec = [int]$A.timeoutSec } }
+        'access_create' { $cmd = 'create'; $P.spec = $A.spec; $P.force = [bool]$A.force }
+        'access_test_report' { $cmd = 'test-report'; $P.run = [bool]$A.run; if ($A.out) { $P.out = $A.out } }
         'access_document' { $cmd = 'document'; if ($A.out) { $P.out = $A.out } }
         'access_format' { $cmd = 'format'; if ($A.files) { $P.files = @($A.files) }; $P.check = [bool]$A.check }
         'access_report_snapshot' {

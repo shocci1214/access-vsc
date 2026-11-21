@@ -36,6 +36,12 @@
              Keeps Access open between requests (closed after ACCESSVSC_SESSION_IDLE seconds idle, default 300). Used by the VS Code extension.
     document Write Markdown documentation of the database structure (tables, ER diagram, queries, forms, reports, VBA,
              who-uses-what) from the source folder. No Access needed. -Out <folder> (default: <db>.docs). Notes are kept.
+    script   Run PowerShell (-Code / -ScriptFile; $app, $db, $params are available) or VBA (-Vba; statements, or a module with
+             -Entry) inside the watchdog: dialogs are answered and recorded, and on timeout the text of the windows that were
+             shown is returned. A temporary module AVSC_Temp is removed afterwards.
+    test-report  Write the executed unit / integration / system tests and their results to Excel (.xlsx; no Excel needed).
+             -Run (run the tests first)  -Out <file.xlsx> (default: test-reports\テスト結果_<db>_<date>.xlsx)
+    create   Create a new form or report from a JSON spec (-Spec spec.json) and write its source file. See the reference.
     format   Fix VBA indentation and trailing spaces in the source folder (no Access). -Files ...  -Check (only list)
     setup-ci Add Assert module, example test, GitHub Actions workflow, pre-commit hook, .gitattributes (no Access)
                -Root <repo root>  -GitInit  -Force
@@ -49,7 +55,7 @@
 #>
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'format', 'document', 'serve', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
+    [ValidateSet('status', 'export', 'import', 'compile', 'run', 'eval', 'sql', 'list', 'layout', 'preview', 'pagesetup', 'test', 'lint', 'format', 'document', 'serve', 'script', 'create', 'test-report', 'setup-ci', 'snapshot', 'build', 'deploy', 'deploy-init')]
     [string]$Command,
 
     [string]$DbPath,
@@ -94,6 +100,20 @@ param(
     [switch]$Check,
     # document
     [string]$Out,
+    # script / create
+    [string]$Code,
+    [string]$ScriptFile,
+    [string]$Vba,
+    [string]$Entry,
+    [string]$Spec,
+    # preview（フォーム）: form（実際の画面。既定）/ print（印刷イメージ）
+    [ValidateSet('form', 'print')][string]$FormView,
+    # 起動時フォーム・AutoExec を動かす（既定は動かさない）
+    [switch]$RunStartup,
+    # test-report: 先にテストを実行する
+    [switch]$Run,
+    # バックアップの世代数（0 で作らない。既定 10）
+    [int]$BackupKeep = -1,
     # snapshot
     [string[]]$Reports,
     [switch]$Update,
@@ -184,6 +204,8 @@ $P = @{
     db = $DbPath; src = $Src; visible = [bool]$Visible; noBackup = [bool]$NoBackup
     timeoutSec = $TimeoutSec
 }
+if ($RunStartup) { $P.runStartup = $true }
+if ($BackupKeep -ge 0) { $P.backupKeep = $BackupKeep }
 switch ($Command) {
     'import' {
         $P.files = @(Split-List $Files); $P.all = [bool]$All; $P.deleteMissing = [bool]$DeleteMissing
@@ -200,6 +222,7 @@ switch ($Command) {
     'sql' { $P.sql = $Sql; $P.limit = $Limit; $P.write = [bool]$Write }
     { $_ -in @('layout', 'preview', 'pagesetup') } {
         $P.report = $Report; $P.objectType = $ObjectType; $P.where = $Where; $P.pages = $Pages
+        if ($FormView) { $P.formView = $FormView }
         $P.paperSize = $PaperSize; $P.orientation = $Orientation
         if ($WidthCm) { $P.widthCm = $WidthCm }
         if ($Margins) {
@@ -219,6 +242,17 @@ switch ($Command) {
     'lint' { if ($Files) { $P.files = @(Split-List $Files) } }
     'format' { if ($Files) { $P.files = @(Split-List $Files) }; $P.check = [bool]$Check }
     'document' { if ($Out) { $P.out = $Out } }
+    'test-report' { if ($Out) { $P.out = $Out }; $P.run = [bool]$Run; if ($Filter) { $P.filter = @(Split-List $Filter) } }
+    'script' {
+        if ($Code) { $P.code = $Code }
+        if ($ScriptFile) { $P.scriptFile = $ScriptFile }
+        if ($Vba) { $P.vba = $(if (Test-Path -LiteralPath $Vba -PathType Leaf) { Read-SourceText $Vba } else { $Vba }) }
+        if ($Entry) { $P.entry = $Entry }
+    }
+    'create' {
+        if ($Spec) { $P.spec = ConvertTo-HashtableDeep ((Read-SourceText $Spec) | ConvertFrom-Json) }
+        $P.force = [bool]$Force
+    }
     'setup-ci' { $P.root = $Root; $P.force = [bool]$Force; $P.gitInit = [bool]$GitInit }
     'snapshot' {
         if ($Reports) { $P.reports = @(Split-List $Reports) }
@@ -251,6 +285,11 @@ function Write-TextResult($res) {
             if ($gha) { Write-Output ("::{0} file={1},line={2},title={3}::{4}" -f $(switch ($p.severity) { 'error' { 'error' } 'info' { 'notice' } default { 'warning' } }), $file, $p.line, $p.rule, $p.message) }
         }
         Write-Output ("lint: {0} error(s), {1} warning(s), {2} info / {3} files" -f $res.result.errorCount, $res.result.warningCount, [int]$res.result.infoCount, $res.result.files)
+        return
+    }
+    if ($res.command -eq 'test-report' -and $res.result) {
+        $x = $res.result
+        Write-Output ("test-report: {0}  ({1} passed, {2} failed, {3} error/check / {4})" -f $x.path, $x.passed, $x.failed, $x.errors, $x.total)
         return
     }
     if ($res.command -eq 'document' -and $res.result) {

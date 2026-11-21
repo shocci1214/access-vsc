@@ -764,6 +764,28 @@ function Invoke-PreviewOp($app, $P) {
         Remove-Item -Force -ErrorAction SilentlyContinue
     $pdf = $base + '.pdf'
     $pages = $null
+    if ($kind -eq 'form' -and $P.formView -ne 'print') {
+        # フォームは実際の画面（フォームビュー）を撮る。印刷を通すとボタンが消え、表示形式も変わるため。
+        # Access を画面の外で表示し、フォームを開いて PrintWindow で撮影する（フォーカスは奪わない）
+        $png = $base + '_screen.png'
+        $hwnd = [long]$app.hWndAccessApp()
+        $wasVisible = [bool]$app.Visible
+        try {
+            [AccessVsc.Win32]::PlaceOffscreen($hwnd, 1280, 900)
+            if (-not $wasVisible) { $app.Visible = $true; [AccessVsc.Win32]::PlaceOffscreen($hwnd, 1280, 900) }
+            $app.DoCmd.OpenForm($name, 0, '', [string]$P.where)   # acNormal（フォームビュー）
+            [System.Threading.Thread]::Sleep(600)
+            $fh = [long][System.__ComObject].InvokeMember('hWnd', [System.Reflection.BindingFlags]::GetProperty, $null, $app.Forms.Item($name), $null)
+            if (-not [AccessVsc.Win32]::CaptureWindow($fh, $png)) { throw 'フォームの画面を撮影できませんでした' }
+        }
+        finally {
+            try { Close-Object $app 'form' $name $false } catch {}
+            if (-not $wasVisible) { try { $app.Visible = $false } catch {} }
+        }
+        $res = [ordered]@{ object = $name; kind = $kind; view = 'form'; images = @($png); pageCount = 1 }
+        if ($layout) { $res.issues = $layout.issues; $res.widthCm = $layout.widthCm }
+        return [ordered]@{ ok = $true; result = $res; warnings = @($warnings) }
+    }
     if ($kind -eq 'form') {
         $app.DoCmd.OutputTo(2, $name, 'PDF Format (*.pdf)', $pdf)
     }
@@ -1021,6 +1043,229 @@ function Invoke-MakeAccdeOp($app, $P, $State) {
 }
 
 # ============================================================
+# 起動時フォーム・AutoExec があるか（DB を DAO で読み取り専用に開いて調べる。Access の画面は動かない）
+# ============================================================
+function Get-StartupItems($app, [string]$Db) {
+    $items = New-Object System.Collections.Generic.List[string]
+    $bypass = $true
+    try {
+        $d = $app.DBEngine.OpenDatabase($Db, $false, $true)
+        try {
+            try {
+                $sf = [string]$d.Properties.Item('StartUpForm').Value
+                if ($sf -and $sf -notmatch '^\((なし|none)\)$') { $items.Add("起動時フォーム $sf") }
+            }
+            catch {}
+            try { [void]$d.Containers.Item('Scripts').Documents.Item('AutoExec').Name; $items.Add('AutoExec マクロ') } catch {}
+            try { if ($d.Properties.Item('AllowBypassKey').Value -eq $false) { $bypass = $false } } catch {}
+        }
+        finally { $d.Close() }
+    }
+    catch {}
+    return @{ items = $items.ToArray(); bypass = $bypass }
+}
+
+# ============================================================
+# 任意の PowerShell / VBA を、見張り（ダイアログの自動応答・時間切れ）の中で実行する
+#   P.code（PowerShell の文）: $app（Access.Application）・$db（CurrentDb）・$params が使える。最後の値が結果
+#   P.vba（VBA）: 文だけなら関数で包み、Sub/Function があればモジュールとして読み込んで P.entry（既定 Main）を呼ぶ。
+#                 一時モジュール AVSC_Temp は実行後に削除する
+# ============================================================
+function Invoke-ScriptOp($app, $P, $State) {
+    if ($P.vba) {
+        $text = [string]$P.vba
+        $entry = if ($P.entry) { [string]$P.entry } else { 'Main' }
+        if ($text -notmatch '(?im)^\s*(Public\s+|Private\s+)?(Sub|Function)\s+') {
+            # 文だけのときは関数で包む。戻り値は AVSC_Main = 値 で返す（Main = 値 と書いても同じになるよう置き換える）
+            $body = ($text -split "`r?`n" | ForEach-Object { "    " + ($_ -replace '^(\s*)Main(\s*=)', '$1AVSC_Main$2') }) -join "`r`n"
+            $text = "Public Function AVSC_Main()`r`n$body`r`nEnd Function"
+            $entry = 'AVSC_Main'
+        }
+        $tmp = New-TempDir
+        try {
+            $t = Join-Path $tmp 'm.txt'
+            Write-ForLoad $t (Convert-ModuleSource ("Option Compare Database`r`nOption Explicit`r`n`r`n" + $text) $false) 'ansi' (New-Object System.Collections.Generic.List[string]) 'AVSC_Temp'
+            Invoke-LoadFromText $app 5 'AVSC_Temp' $t
+            $notCompiled = Test-CompiledBeforeRun $app
+            if ($notCompiled) { return $notCompiled }
+            $v = [System.__ComObject].InvokeMember('Run', [System.Reflection.BindingFlags]::InvokeMethod, $null, $app, [object[]]@($entry))
+            return [ordered]@{ ok = $true; result = [ordered]@{ value = (ConvertTo-PlainValue $v); type = $(if ($null -ne $v) { $v.GetType().Name } else { 'Empty' }) } }
+        }
+        finally {
+            try { $app.DoCmd.DeleteObject(5, 'AVSC_Temp') } catch {}
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    $code = if ($P.scriptFile) { Read-SourceText ([string]$P.scriptFile) } else { [string]$P.code }
+    if (-not $code) { throw 'code, scriptFile or vba is required' }
+    $db = $app.CurrentDb()
+    $params = $P.params
+    $output = @(. ([scriptblock]::Create($code)))
+    $value = if ($output.Count -eq 1) { $output[0] } else { $output }
+    $plain = try { ConvertTo-PlainValue $value } catch { [string]$value }
+    return [ordered]@{ ok = $true; result = [ordered]@{ value = $plain } }
+}
+
+# ============================================================
+# フォーム・レポートを新しく作る（JSON の指定から。Access に作らせてから、そのオブジェクトだけ取り出す）
+# ============================================================
+$script:ControlTypes = @{
+    label = 100; rectangle = 101; line = 102; image = 103; commandbutton = 104; button = 104; optionbutton = 105; checkbox = 106
+    optiongroup = 107; textbox = 109; listbox = 110; combobox = 111; subform = 112; subreport = 112; pagebreak = 118; togglebutton = 122; tab = 123
+}
+function ConvertTo-Twips($v) {
+    if ($null -eq $v) { return $null }
+    if ($v -is [string]) {
+        if ($v -match '^\s*([\d.]+)\s*cm\s*$') { return [int][Math]::Round([double]$Matches[1] * 567) }
+        if ($v -match '^\s*([\d.]+)\s*mm\s*$') { return [int][Math]::Round([double]$Matches[1] * 56.7) }
+        return [int]$v
+    }
+    return [int]$v
+}
+function Get-SectionIndex([string]$Name) {
+    switch -regex ($Name) {
+        '^(detail|詳細)?$' { return 0 }
+        '^(header|formHeader|reportHeader)$' { return 1 }
+        '^(footer|formFooter|reportFooter)$' { return 2 }
+        '^pageHeader$' { return 3 }
+        '^pageFooter$' { return 4 }
+        '^group(\d+)Header$' { return 5 + 2 * [int]$Matches[1] }
+        '^group(\d+)Footer$' { return 6 + 2 * [int]$Matches[1] }
+        default { throw "Unknown section: $Name (detail, header, footer, pageHeader, pageFooter, group0Header, group0Footer, ...)" }
+    }
+}
+function Set-ObjectProps($Obj, $Props, $Warnings, [string]$Where) {
+    if (-not $Props) { return }
+    foreach ($k in @($Props.Keys)) {
+        $v = $Props[$k]
+        if ($k -in @('Left', 'Top', 'Width', 'Height')) { $v = ConvertTo-Twips $v }
+        try { $Obj.$k = $v } catch { $Warnings.Add("$Where の $k を設定できませんでした: " + (Get-InnerMessage $_)) }
+    }
+}
+function Save-ObjectSource($app, [string]$Src, [string]$Kind, [string]$Name) {
+    $acType = if ($Kind -eq 'forms') { 2 } else { 3 }
+    $rel = "$Kind/" + (ConvertTo-SafeFileName $Name) + '.txt'
+    $tmp = New-TempDir
+    try {
+        $t = Join-Path $tmp 'o.txt'
+        $app.SaveAsText($acType, $Name, $t)
+        $r = Read-TextAuto $t
+        $full = Join-Path $Src ($rel.Replace('/', '\'))
+        Write-SourceText $full $r.text
+        $manifest = Read-Manifest $Src
+        $manifest.files[$rel] = @{ hash = (Get-FileSha256 $full); encoding = $r.encoding }
+        Save-Manifest $Src $manifest
+    }
+    finally { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
+    return $rel
+}
+function Invoke-CreateObjectOp($app, $P, $State) {
+    $spec = $P.spec
+    if (-not $spec) { throw 'spec is required' }
+    $isForm = ([string]$spec.type) -ne 'report'
+    $name = [string]$spec.name
+    if (-not $name) { throw 'spec.name is required' }
+    $warnings = New-Object System.Collections.Generic.List[string]
+    $exists = if ($isForm) { @($app.CurrentProject.AllForms | Where-Object { $_.Name -eq $name }).Count } else { @($app.CurrentProject.AllReports | Where-Object { $_.Name -eq $name }).Count }
+    if ($exists) {
+        if (-not $P.force) { throw "$name already exists. Use force to replace it." }
+        $app.DoCmd.DeleteObject($(if ($isForm) { 2 } else { 3 }), $name)
+    }
+    # if の式で受けると、PowerShell がフォームをコントロールの一覧に展開してしまうので、枝の中で代入する
+    if ($isForm) { $obj = $app.CreateForm() } else { $obj = $app.CreateReport() }
+    $tmpName = $obj.Name
+    $saved = $false
+    try {
+    if ($spec.recordSource) { $obj.RecordSource = [string]$spec.recordSource }
+    if ($spec.caption) { $obj.Caption = [string]$spec.caption }
+    if ($spec.width) { $obj.Width = ConvertTo-Twips $spec.width }
+    Set-ObjectProps $obj $spec.properties $warnings $name
+    # レポートのグループ（並べ替え・グループ化）。グループのセクションは group0Header / group0Footer ...
+    $gi = 0
+    foreach ($g in @($spec.groups)) {
+        if (-not $g) { continue }
+        try {
+            [void]$app.CreateGroupLevel($tmpName, [string]$g.field, [bool]$g.header, [bool]$g.footer)
+            if ($g.descending) { $obj.GroupLevel($gi).SortOrder = $true }
+        }
+        catch { $warnings.Add("グループ $($g.field) を作れませんでした: " + (Get-InnerMessage $_)) }
+        $gi++
+    }
+    # ヘッダー・フッターを使うなら表示する
+    $usesHeader = @($spec.controls | Where-Object { $_.section -match '^(header|footer|formHeader|formFooter|reportHeader|reportFooter)$' }).Count -gt 0 -or ($spec.sections -and ($spec.sections.Keys -match '^(header|footer)'))
+    if ($usesHeader) { try { $app.RunCommand($(if ($isForm) { 36 } else { 37 })) } catch { $warnings.Add('ヘッダー・フッターを表示できませんでした: ' + (Get-InnerMessage $_)) } }
+    if ($spec.sections) {
+        foreach ($sn in @($spec.sections.Keys)) {
+            try {
+                $sec = $obj.Section((Get-SectionIndex $sn))
+                $sp = $spec.sections[$sn]
+                if ($sp.height) { $sec.Height = ConvertTo-Twips $sp.height }
+                Set-ObjectProps $sec $sp.properties $warnings "セクション $sn"
+            }
+            catch { $warnings.Add("セクション $sn を設定できませんでした: " + (Get-InnerMessage $_)) }
+        }
+    }
+    $created = New-Object System.Collections.Generic.List[string]
+    foreach ($c in @($spec.controls)) {
+        if (-not $c) { continue }
+        $type = $script:ControlTypes[([string]$c.type).ToLower()]
+        if (-not $type) { $warnings.Add("種類 $($c.type) はわかりません（$($c.name)）"); continue }
+        try {
+            $sec = Get-SectionIndex ([string]$c.section)
+            $l = [int](ConvertTo-Twips $(if ($null -ne $c.left) { $c.left } else { 0 }))
+            $t = [int](ConvertTo-Twips $(if ($null -ne $c.top) { $c.top } else { 0 }))
+            $w = if ($null -ne $c.width) { [int](ConvertTo-Twips $c.width) } else { -1 }
+            $h = if ($null -ne $c.height) { [int](ConvertTo-Twips $c.height) } else { -1 }
+            if ($isForm) { $ctl = $app.CreateControl($tmpName, $type, $sec, '', [string]$c.controlSource, $l, $t, $w, $h) }
+            else { $ctl = $app.CreateReportControl($tmpName, $type, $sec, '', [string]$c.controlSource, $l, $t, $w, $h) }
+            if ($c.name) { $ctl.Name = [string]$c.name }
+            if ($c.caption) { $ctl.Caption = [string]$c.caption }
+            if ($c.rowSource) { $ctl.RowSource = [string]$c.rowSource }
+            if ($c.sourceObject) { $ctl.SourceObject = [string]$c.sourceObject }
+            Set-ObjectProps $ctl $c.properties $warnings ([string]$c.name)
+            foreach ($ev in @($c.events)) {
+                if (-not $ev) { continue }
+                $pn = if ($ev -match '^(BeforeUpdate|AfterUpdate|BeforeInsert|AfterInsert)$') { $ev } else { "On$ev" }
+                try { $ctl.$pn = '[Event Procedure]' } catch { $warnings.Add("$($c.name) のイベント $ev を設定できませんでした") }
+            }
+            # 左にラベルを付ける（label: "顧客名"）
+            if ($c.label -and $type -ne 100) {
+                $lw = if ($c.labelWidth) { [int](ConvertTo-Twips $c.labelWidth) } else { 1400 }
+                $lh = if ($h -gt 0) { $h } else { 330 }
+                if ($isForm) { $lbl = $app.CreateControl($tmpName, 100, $sec, [string]$ctl.Name, '', [Math]::Max(0, $l - $lw - 60), $t, $lw, $lh) }
+                else { $lbl = $app.CreateReportControl($tmpName, 100, $sec, [string]$ctl.Name, '', [Math]::Max(0, $l - $lw - 60), $t, $lw, $lh) }
+                $lbl.Caption = [string]$c.label
+                try { $lbl.Name = "lbl" + ([string]$ctl.Name -replace '^(txt|cbo|lst|chk|opt|cmd|tgl)', '') } catch {}
+            }
+            $created.Add([string]$ctl.Name)
+        }
+        catch { $warnings.Add("コントロール $($c.name) を作れませんでした: " + (Get-InnerMessage $_)) }
+    }
+    foreach ($ev in @($spec.events)) {
+        if (-not $ev) { continue }
+        $pn = if ($ev -match '^(BeforeUpdate|AfterUpdate|BeforeInsert|AfterInsert)$') { $ev } else { "On$ev" }
+        try { $obj.$pn = '[Event Procedure]' } catch { $warnings.Add("イベント $ev を設定できませんでした") }
+    }
+    if ($spec.code) {
+        # 新しいモジュールには Option 行が入っているので、中身ごと入れ替える
+        $obj.HasModule = $true
+        $mod = $obj.Module
+        if ($mod.CountOfLines -gt 0) { $mod.DeleteLines(1, $mod.CountOfLines) }
+        $mod.InsertText(("Option Compare Database`r`nOption Explicit`r`n`r`n" + ([string]$spec.code -replace "`r?`n", "`r`n")))
+    }
+    $app.DoCmd.Close($(if ($isForm) { 2 } else { 3 }), $tmpName, 1)
+    $saved = $true
+    if ($tmpName -ne $name) { $app.DoCmd.Rename($name, $(if ($isForm) { 2 } else { 3 }), $tmpName) }
+    }
+    finally {
+        # 途中で失敗したら、作りかけを保存せずに閉じる（次の操作に残さない）
+        if (-not $saved) { try { $app.DoCmd.Close($(if ($isForm) { 2 } else { 3 }), $tmpName, 2) } catch {} }
+    }
+    $rel = Save-ObjectSource $app $P.src $(if ($isForm) { 'forms' } else { 'reports' }) $name
+    return [ordered]@{ ok = $true; result = [ordered]@{ name = $name; type = $(if ($isForm) { 'form' } else { 'report' }); file = $rel; controls = $created.ToArray() }; warnings = $warnings.ToArray() }
+}
+
+# ============================================================
 # 入口：Access を起動 -> 操作 -> 後片付け
 # ============================================================
 function Invoke-AccessOp([string]$Op, $P, $State) {
@@ -1035,6 +1280,7 @@ function Invoke-AccessOp([string]$Op, $P, $State) {
         if ($app) {
             $State.app = $app
             $State.hwnd = $global:AvscHwnd
+            $State.startup = $global:AvscStartup
         }
         else {
             $app = New-Object -ComObject Access.Application
@@ -1043,8 +1289,17 @@ function Invoke-AccessOp([string]$Op, $P, $State) {
             $app.Visible = [bool]$P.visible
             $app.AutomationSecurity = 1     # msoAutomationSecurityLow（マクロ有効）
             $State.phase = 'open'
-            if (-not $P.noOpen) { $app.OpenCurrentDatabase([string]$P.db, [bool]$P.exclusive) }
-            if ($keep) { $global:AvscApp = $app; $global:AvscHwnd = $State.hwnd }
+            if (-not $P.noOpen) {
+                # 起動時フォーム・AutoExec を動かさずに開く（確認や実行のための操作で、データが変わらないように）。
+                # Access は Shift を押しながら開くと、どちらも動かさない。あるときだけ押す
+                $st = if ($P.runStartup) { $null } else { Get-StartupItems $app ([string]$P.db) }
+                $useShift = $st -and $st.items.Count -gt 0
+                if ($useShift) { try { [AccessVsc.Win32]::ShiftKey($true) } catch { $useShift = $false } }
+                try { $app.OpenCurrentDatabase([string]$P.db, [bool]$P.exclusive) }
+                finally { if ($useShift) { [AccessVsc.Win32]::ShiftKey($false) } }
+                if ($st -and $st.items.Count) { $State.startup = [ordered]@{ items = $st.items; skipped = [bool]$st.bypass } }
+            }
+            if ($keep) { $global:AvscApp = $app; $global:AvscHwnd = $State.hwnd; $global:AvscStartup = $State.startup }
         }
         $State.phase = $Op
         switch ($Op) {
@@ -1062,8 +1317,11 @@ function Invoke-AccessOp([string]$Op, $P, $State) {
             'snapshot' { $out = Invoke-SnapshotOp $app $P $State }
             'stamp' { $out = Invoke-StampOp $app $P }
             'makeaccde' { $out = Invoke-MakeAccdeOp $app $P $State }
+            'script' { $out = Invoke-ScriptOp $app $P $State }
+            'create' { $out = Invoke-CreateObjectOp $app $P $State }
             default { throw "Unknown operation: $Op" }
         }
+        if ($State.startup -and $out) { $out.startup = $State.startup }
         $State.result = $out   # 終了処理で固まっても、結果は見張り側で拾えるようにする
     }
     catch {
